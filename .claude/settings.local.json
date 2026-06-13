@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npx --yes create-next-app@latest web --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --turbopack=false)",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\('iron-session', require\\('./node_modules/iron-session/package.json'\\).version\\); console.log\\('mongoose', require\\('./node_modules/mongoose/package.json'\\).version\\); console.log\\('zod', require\\('./node_modules/zod/package.json'\\).version\\); console.log\\('bcryptjs', require\\('./node_modules/bcryptjs/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\('date-fns', require\\('./node_modules/date-fns/package.json'\\).version\\); console.log\\('date-fns-tz', require\\('./node_modules/date-fns-tz/package.json'\\).version\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(xargs grep -li \"filterquery\")",
+      "Bash(npx eslint *)",
+      "Bash(grep -q \"Ready\\\\|started server\\\\|Local:\" /tmp/nsnl-dev.log)",
+      "Bash(break)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"landing: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"admin: %{http_code}\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s -o /dev/null -w \"admin-login: %{http_code}\\\\n\" http://localhost:3000/admin/login)",
+      "Bash(curl -s -o /dev/null -w \"api-nearest: %{http_code}\\\\n\" http://localhost:3000/api/public/raids/nearest)",
+      "Bash(curl -s -o /dev/null -w \"members: %{http_code}\\\\n\" http://localhost:3000/admin/members -H \"Cookie: nsnl_admin_session=invalid\")",
+      "Bash(uipro init *)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"gaming guild PVE wuxia martial-fantasy landing page glassmorphism dark immersive\" --design-system --persist -p \"Nhan Sinh Nhu Lu\" --stack next)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"gaming guild PVE wuxia martial-fantasy landing page glassmorphism dark immersive\" --design-system --persist -p \"Nhan Sinh Nhu Lu\" --stack nextjs)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" --help)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"glassmorphism dark gaming wuxia martial arts ink jade\" --domain style -n 5)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"dark jade ink wuxia martial arts mist gold\" --domain color -n 6)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"gaming guild esports bold dark fantasy\" --domain typography -n 4)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"elegant serif editorial cinematic luxury dark\" --domain typography -n 4)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"gaming community hero video background dark immersive\" --domain landing -n 3)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)",
+      "Bash(curl *)"
+    ]
+  }
+}

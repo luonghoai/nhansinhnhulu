@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* Ink, Jade & Gold — see design-system/nhan-sinh-nhu-lu/MASTER.md */
+@theme {
+  --color-ink: #0a0f0d;
+  --color-ink-2: #111815;
+  --color-jade: #34d399;
+  --color-jade-deep: #0f766e;
+  --color-gold: #d4af37;
+  --color-gold-soft: #f2d88f;
+  --color-text: #f5f3ec;
+  --color-text-muted: #a8b3ac;
+  --color-background: #0a0f0d;
+  --color-foreground: #f5f3ec;
+}
+
+@theme inline {
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-inter);
+  --font-sans: var(--font-inter);
+}
+
+:root {
+  --glass-bg: rgba(245, 243, 236, 0.05);
+  --glass-bg-hover: rgba(245, 243, 236, 0.09);
+  --glass-border: rgba(245, 243, 236, 0.1);
+  --glass-border-hover: rgba(52, 211, 153, 0.35);
+  --glass-blur: 16px;
+  --glass-blur-nav: 12px;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --glow-jade: 0 0 24px rgba(52, 211, 153, 0.25);
+  --glow-gold: 0 0 24px rgba(212, 175, 55, 0.3);
+  --shadow-card: var(--shadow-md);
+  --shadow-card-hover: var(--shadow-lg), var(--glow-jade);
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+}
+
+/* Reveal-on-scroll: SectionReveal toggles [data-revealed]. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+[data-reveal][data-revealed="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Wuxia atmosphere — Team Intro & Raids sections
+   Ink-wash backgrounds + ornament accents (CSS/SVG only).
+   See design-system/nhan-sinh-nhu-lu/MASTER.md.
+   ───────────────────────────────────────────────────────────── */
+
+/* Soft, transparent ink-wash glow shared by both layers (no grain texture). */
+.ink-wash-team,
+.ink-wash-raids {
+  background-image: radial-gradient(60% 50% at 12% 0%, rgba(52, 211, 153, 0.1), transparent 70%),
+    radial-gradient(55% 45% at 88% 4%, rgba(212, 175, 55, 0.08), transparent 70%);
+}
+/* Slightly warmer/centered glow for the raids section so the two differ. */
+.ink-wash-raids {
+  background-image: radial-gradient(70% 60% at 50% -10%, rgba(15, 118, 110, 0.18), transparent 70%),
+    radial-gradient(40% 40% at 85% 100%, rgba(212, 175, 55, 0.06), transparent 70%);
+}
+
+/* Gold→jade hairline along the top edge of a framed card. */
+.frame-hairline::before {
+  content: "";
+  position: absolute;
+  inset: 0 1rem auto 1rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(212, 175, 55, 0.5),
+    rgba(52, 211, 153, 0.5),
+    transparent
+  );
+}
+
+/* Ambient breathing glow for heading ornaments (motion-safe only). */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.motion-safe\:glow-pulse {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe\:glow-pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
