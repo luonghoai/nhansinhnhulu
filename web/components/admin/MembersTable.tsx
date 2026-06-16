@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { classIconSrc } from "@/lib/assets";
+import { NSNL_CLASSES, iconKeyForClass } from "@/lib/classes";
 import type { MemberDTO } from "@/lib/dto";
 
 export function MembersTable({ initialMembers }: { initialMembers: MemberDTO[] }) {
@@ -144,35 +146,52 @@ export function MembersTable({ initialMembers }: { initialMembers: MemberDTO[] }
                     </td>
                     <td className="px-4 py-3">
                       {draft ? (
-                        <input
+                        // Selecting a class auto-fills its canonical icon key (see
+                        // `lib/classes.ts`), so the icon column stays in sync — no free typing.
+                        <select
                           value={draft.class}
                           onChange={(e) =>
                             setEditing((prev) => ({
                               ...prev,
-                              [member.id]: { ...prev[member.id], class: e.target.value },
+                              [member.id]: {
+                                ...prev[member.id],
+                                class: e.target.value,
+                                classIcon: iconKeyForClass(e.target.value) ?? "",
+                              },
                             }))
                           }
-                          className="w-32 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                        />
+                          className="w-32 cursor-pointer rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                        >
+                          <option value="">— Unassigned —</option>
+                          {NSNL_CLASSES.map((c) => (
+                            <option key={c.iconKey} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
                       ) : (
                         member.class ?? <span className="text-zinc-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {draft ? (
-                        <input
-                          value={draft.classIcon}
-                          onChange={(e) =>
-                            setEditing((prev) => ({
-                              ...prev,
-                              [member.id]: { ...prev[member.id], classIcon: e.target.value },
-                            }))
-                          }
-                          className="w-32 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                        />
-                      ) : (
-                        member.classIcon ?? <span className="text-zinc-400">—</span>
-                      )}
+                      {(() => {
+                        const iconKey = draft ? draft.classIcon : member.classIcon;
+                        const src = classIconSrc(iconKey);
+                        if (!src) return <span className="text-zinc-400">—</span>;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src={src}
+                              alt=""
+                              width={24}
+                              height={24}
+                              className="rounded-full"
+                              unoptimized={src.endsWith(".svg")}
+                            />
+                            <span className="font-mono text-xs text-zinc-500">{iconKey}</span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <button

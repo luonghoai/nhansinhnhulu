@@ -1,16 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { DungeonDTO } from "@/lib/dto";
+import { dungeonBannerSrc } from "@/lib/assets";
 
 export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [size, setSize] = useState<"6" | "12">("6");
   const [description, setDescription] = useState("");
+  const [imageKey, setImageKey] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleBannerSelect(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+
+    const data = new FormData();
+    data.append("file", file);
+    const res = await fetch("/api/admin/dungeons/banner", { method: "POST", body: data });
+
+    setUploading(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Failed to upload banner");
+      return;
+    }
+
+    const body = await res.json();
+    setImageKey(body.imageKey as string);
+  }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,7 +46,7 @@ export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO
     const res = await fetch("/api/admin/dungeons", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, size: Number(size), description }),
+      body: JSON.stringify({ name, size: Number(size), description, imageKey }),
     });
 
     setSubmitting(false);
@@ -33,6 +59,7 @@ export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO
 
     setName("");
     setDescription("");
+    setImageKey(null);
     router.refresh();
   }
 
@@ -95,9 +122,33 @@ export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO
             className="w-72 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           />
         </div>
+        <div>
+          <label htmlFor="banner" className="mb-1 block text-sm font-medium text-zinc-700">
+            Banner
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="banner"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleBannerSelect}
+              disabled={uploading}
+              className="text-sm file:mr-2 file:cursor-pointer file:rounded-md file:border file:border-zinc-300 file:bg-white file:px-3 file:py-2 file:text-sm hover:file:bg-zinc-50 disabled:cursor-not-allowed"
+            />
+            {uploading && <span className="text-xs text-zinc-500">Uploading…</span>}
+            {imageKey && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={dungeonBannerSrc(imageKey) ?? ""}
+                alt="Banner preview"
+                className="h-10 w-16 rounded border border-zinc-200 object-cover"
+              />
+            )}
+          </div>
+        </div>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="cursor-pointer rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? "Creating..." : "Create"}
@@ -113,6 +164,7 @@ export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
+                <th className="px-4 py-3 font-medium">Banner</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Size</th>
                 <th className="px-4 py-3 font-medium">Description</th>
@@ -123,6 +175,18 @@ export function DungeonsTable({ initialDungeons }: { initialDungeons: DungeonDTO
             <tbody className="divide-y divide-zinc-100">
               {initialDungeons.map((dungeon) => (
                 <tr key={dungeon.id}>
+                  <td className="px-4 py-3">
+                    {dungeonBannerSrc(dungeon.imageKey) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={dungeonBannerSrc(dungeon.imageKey) ?? ""}
+                        alt={`${dungeon.name} banner`}
+                        className="h-9 w-14 rounded border border-zinc-200 object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium text-zinc-900">{dungeon.name}</td>
                   <td className="px-4 py-3">{dungeon.size}-man</td>
                   <td className="px-4 py-3 text-zinc-500">{dungeon.description || "—"}</td>

@@ -1,20 +1,28 @@
 import { CalendarClock, Swords, Users } from "lucide-react";
-import { MOCK_TEAM_STATS } from "@/lib/mockData";
+import { getTeamStats } from "@/lib/queries";
 import { CornerFrame, InkWash, SectionHeading } from "./Ornaments";
 import { SectionReveal } from "./SectionReveal";
 
-const PLACEHOLDER_STATS = [
-  { label: "Thành viên", value: "—" },
-  { label: "Phụ bản đã chinh phục", value: "—" },
-  { label: "Raid mỗi tuần", value: "—" },
-];
-
-// Stat order is fixed (see mockData.MOCK_TEAM_STATS); map an icon per position.
+// Stat order is fixed; each entry maps to an icon by position.
 const STAT_ICONS = [Users, Swords, CalendarClock];
 
-export function TeamIntro() {
-  // No database configured — show demo stats so the UI/UX can be reviewed.
-  const stats = process.env.MONGODB_URI ? PLACEHOLDER_STATS : MOCK_TEAM_STATS;
+export async function TeamIntro() {
+  let stats = [
+    { label: "Thành viên", value: "—" },
+    { label: "Phụ bản đã chinh phục", value: "—" },
+    { label: "Raid mỗi tuần", value: "—" },
+  ];
+
+  try {
+    const { memberCount, dungeonsConquered, raidsThisWeek } = await getTeamStats();
+    stats = [
+      { label: "Thành viên", value: String(memberCount) },
+      { label: "Phụ bản đã chinh phục", value: String(dungeonsConquered) },
+      { label: "Raid mỗi tuần", value: String(raidsThisWeek) },
+    ];
+  } catch {
+    // Leave the placeholder dashes if the database is unreachable.
+  }
 
   return (
     <section id="team" className="relative overflow-hidden bg-ink-2 px-6 py-24">

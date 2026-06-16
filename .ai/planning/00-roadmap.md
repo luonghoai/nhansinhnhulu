@@ -24,10 +24,11 @@ Phases are ordered so the **data layer is locked before UI/bot** to avoid rework
 ## Phase 1 — Data layer & seed
 **Goal:** Collections, schemas, indexes, and seed/fixtures exist; both apps can read/write.
 
-- [ ] Mongoose models in `web/` for Member, Dungeon, Raid, JoinRequest.
-- [ ] `/api/bot/*` endpoints (Pattern B) so the bot can read/write without DB access.
-- [ ] Indexes: `Member.discordId` unique; `Raid.startAt`; `JoinRequest.status`.
-- [ ] Seed script: a few members, 2 dungeons (6p + 12p), 2–3 raids this week.
+- [x] Mongoose models in `web/` for Member, Dungeon, Raid, JoinRequest.
+- [x] `/api/bot/*` endpoints (Pattern B) so the bot can read/write without DB access.
+- [x] Indexes: `Member.discordId` unique; `Raid.startAt`; `JoinRequest.status`.
+- [x] Seed script (`web/scripts/seed.mts`, `npm run seed`): 14 members, 2 dungeons (6p + 12p),
+      3 raids this week, 2 pending join requests. Clears collections + `syncIndexes` first.
 
 **Exit criteria:** Seed runs; documents queryable from both web and bot.
 

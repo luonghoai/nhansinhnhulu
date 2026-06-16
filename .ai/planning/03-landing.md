@@ -23,13 +23,14 @@ Public, read-only, no auth. Built per `skills/ui-ux-pro.md`.
 ### 3. Upcoming Raid — **nearest only**
 - Show the **nearest upcoming raid(s)** (see Open Questions: single vs one-per-size).
 - For each shown raid:
-  - **Dungeon info:** name, size badge (6/12), optional thumbnail, description.
+  - **Dungeon info:** name, size badge (6/12), banner image (from `/assets/dungeons/<imageKey>`,
+    via `dungeonBannerSrc`; themed fallback when unset), description.
   - **Date/time:** localized to `Asia/Ho_Chi_Minh`; live **countdown**.
   - **Roster:** grid of participant cards. Each card:
     - Discord avatar (rounded, subtle ring on hover)
     - Discord name
     - Class name
-    - Class icon (from `/assets/classes/<classIcon>.png`)
+    - Class icon (from `/assets/classes/<classIcon>.webp`, via `classIconSrc`)
     - Open slots rendered as ghost/placeholder cards.
 - Empty state: "No upcoming raids scheduled — check back soon."
 
@@ -62,5 +63,7 @@ Public, read-only, no auth. Built per `skills/ui-ux-pro.md`.
 
 ## Open dependencies
 - YouTube video ID (owner to provide).
-- Class icon assets → `web/public/assets/classes/` (owner to provide).
+- Class icon assets → `web/public/assets/classes/<key>.webp` (7 canonical classes shipped;
+  keys in `web/lib/classes.ts`).
+- Dungeon banner assets → `web/public/assets/dungeons/<imageKey>` (owner to provide per dungeon).
 - Team intro copy (owner to provide; placeholder until then).

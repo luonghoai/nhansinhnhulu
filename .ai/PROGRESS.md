@@ -45,8 +45,39 @@ definitions.
   - Added `web/lib/mockData.ts` (demo-only, matches DTO shapes): one 6-man + one 12-man
     raid with rostered/open slots, NSH-flavored member names + classes, Discord embed
     default avatars, and demo `TeamIntro` stats. Used automatically by `RaidSection`/
-    `TeamIntro` whenever `MONGODB_URI` is unset (local UI/UX demo); remove once real seed
-    data (Phase 1) lands.
+    `TeamIntro` whenever `MONGODB_URI` is unset (local UI/UX demo).
+- **Phase 1 — seed script** done:
+  - `web/lib/classes.ts` + `web/lib/assets.ts`: canonical 7-class NSNL list (name ↔ icon key)
+    and asset-key→URL resolvers (`classIconSrc`, `dungeonBannerSrc`); shipped class `.webp`
+    icons + 2 dungeon banners under `web/public/assets/{classes,dungeons}/`. Wired into
+    admin Members table (class `<select>` auto-fills icon), MemberCard badge, RaidCard banner.
+  - `web/scripts/seed.mts` (`npm run seed`, runs via `tsx` — added as devDep): loads
+    `.env.local`/`.env`, clears the 4 collections, `syncIndexes`, then inserts 2 dungeons
+    (real banner-backed), 14 members (cycling canonical classes), 3 scheduled raids this week
+    (6p 5/6, 12p 9/12, plus a 2nd 6p 3/6), and 2 pending join requests. `tsc`/`eslint` clean;
+    no-DB guard verified (clean error + exit 1). Not yet run against a live Atlas cluster
+    (no `MONGODB_URI` configured locally).
+  - Note: `web/lib/mockData.ts` is kept as the no-DB landing fallback (useful for Vercel
+    previews without a cluster), not deleted — seed is the canonical path once Atlas is wired.
+
+- **Phase 5 — Discord bot (`bot/`)** done (scaffold + commands, not yet live-tested):
+  - `bot/pyproject.toml` (discord.py>=2.4, httpx, aiohttp, python-dotenv; ruff+black config),
+    `.env.example`, `.gitignore`, `README.md`.
+  - `bot/main.py`: loads config, starts aiohttp `/notify` server + discord.py gateway on one
+    asyncio loop; fails fast on missing config.
+  - `bot/bot/`: `config.py` (validated frozen `Config`), `api.py` (`WebApi` httpx client wrapping
+    all four `/api/bot/*` with `X-Bot-Secret`; `ApiError` carries status+message for guard
+    responses), `time_utils.py` (UTC ISO → `TEAM_TIMEZONE`), `client.py` (`NSNLBot`, default
+    intents only, guild/global command sync, `ensure_member`, tree error handler),
+    `notify_server.py` (aiohttp `POST /notify` secret-guarded → DM member, always 200; `/health`).
+  - Commands: `commands/myplan.py` (`/myplan`, ephemeral embed), `commands/raids.py` (`/raids`)
+    + `views/raid_select.py` (Select → detail embed + "Request to join" button; maps web 404/409
+    guards to friendly messages).
+  - Verified: `ruff check` + `black --check` clean, imports OK, config loads; aiohttp `/notify`
+    server unit-tested (401 no-secret / 400 bad-payload / 200 approve+reject / `/health` 200, DM
+    path stubbed). **Not yet live-tested** against Discord (needs real `DISCORD_BOT_TOKEN`) or a
+    running web API.
+  - Fixed root `.env.example`: `BOT_NOTIFY_URL` is the base url (web appends `/notify`).
 
 ## Remaining (roughly in order)
 
@@ -57,9 +88,8 @@ definitions.
      `.git` was already removed). Not started.
    - CI skeleton (lint + typecheck on PR) — not started.
 
-2. **Phase 1 — seed script**
-   - Add a seed script (a few members, 2 dungeons [6p + 12p], 2-3 raids this week) so the
-     app can be exercised against real-ish data. Not started.
+2. **Phase 1 — seed script** — DONE (`web/scripts/seed.mts`). Remaining: run it once against
+   a provisioned Atlas cluster to confirm end-to-end (needs `MONGODB_URI` in `web/.env.local`).
 
 3. **Phase 4 — landing polish leftovers (owner-provided content)**
    - Hero video background: YouTube ID still pending (`.ai/specs/open-questions.md` item 14)
@@ -69,14 +99,9 @@ definitions.
    - Footer Discord invite link — set `NEXT_PUBLIC_DISCORD_INVITE_URL` once provided
      (item 17).
 
-4. **Phase 5 — Discord bot (`bot/`)** — not started at all.
-   - Scaffold `bot/main.py`, `bot/bot/{client,api,notify_server,time_utils,commands,views}`.
-   - `httpx` client for `/api/bot/*`; tiny `/notify` server (aiohttp/FastAPI).
-   - `/myplan` command (calls `GET /api/bot/members/{discordId}/plan`).
-   - `/raids` command (calls `GET /api/bot/raids/upcoming`, select menu to join → POST
-     `/api/bot/requests`).
-   - Auto-ensure member on first interaction (`POST /api/bot/members/ensure`).
-   - Ruff + Black config.
+4. **Phase 5 — Discord bot (`bot/`)** — DONE (see above). Remaining: live smoke test with a
+   real `DISCORD_BOT_TOKEN` against a running web API (commands appear in dev guild; `/raids`
+   join flow creates a pending request; web `/notify` push DMs the member).
 
 5. **Phase 6 — approval loop polish**
    - End-to-end test: bot join request → admin approve/reject → `notifyBot` → bot `/notify`

@@ -41,7 +41,10 @@ service** (`bot/`). Both share one MongoDB Atlas database, but **only `web/` has
   (same shared secret) so the bot can DM the member immediately. No polling.
 - **Identity:** Discord ID (snowflake) is the canonical member key — always store/transmit
   as a **string**, never a number (precision loss above 2^53).
-- **Class / classIcon** are admin-managed only, never synced from Discord.
+- **Class / classIcon** are admin-managed only, never synced from Discord. NTH has a fixed
+  roster of **7 canonical classes** — the name↔icon-key mapping lives in `web/lib/classes.ts`
+  (`NSNL_CLASSES`), the single source of truth. Asset keys resolve to URLs via `web/lib/assets.ts`
+  (`classIconSrc` → `/assets/classes/<key>.webp`, `dungeonBannerSrc` → `/assets/dungeons/<key>`).
 - **Timezone:** store all timestamps in UTC; render/compute week boundaries in
   `TEAM_TIMEZONE` (default `Asia/Ho_Chi_Minh`) via `date-fns-tz`.
 - **Admin auth:** single shared password (`ADMIN_PASSWORD_HASH`, constant-time compare) →
@@ -61,9 +64,9 @@ nsnl/
 │   │       ├── admin/      ← session-cookie guarded
 │   │       ├── bot/        ← X-Bot-Secret guarded (Pattern B)
 │   │       └── public/     ← read-only landing data
-│   ├── lib/{models,db,discord,auth,botClient,time,validators}
+│   ├── lib/{models,db,discord,auth,botClient,time,validators,classes,assets}
 │   ├── components/
-│   └── public/assets/classes/   ← class icons (provided later)
+│   └── public/assets/{classes,dungeons}/   ← class icons (7 .webp, shipped) + dungeon banners
 ├── bot/                    ← Python discord.py v2 bot, deployed to a VPS
 │   ├── main.py
 │   └── bot/{client,api,notify_server,time_utils,commands,views}
@@ -83,7 +86,8 @@ nsnl/
 
 ## Data model summary (see `02-data-model.md` for full detail)
 
-- `members` — keyed by unique `discordId`; `class`/`classIcon` are admin-set.
+- `members` — keyed by unique `discordId`; `class`/`classIcon` are admin-set from the canonical
+  7-class list in `web/lib/classes.ts` (class `<select>` auto-derives `classIcon`).
 - `dungeons` — master data; `size` ∈ {6, 12}.
 - `raids` — a scheduled run with `slots[]` (length === `size`), `startAt` (UTC),
   `status` ∈ scheduled/completed/cancelled. "Nearest" = `status=scheduled AND startAt >= now`.

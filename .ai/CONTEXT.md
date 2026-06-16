@@ -28,8 +28,10 @@ Both the Next.js app and the Python bot talk to the **same MongoDB database**.
 - **Member / Person** — a guild member. Identified primarily by **Discord ID** (snowflake).
   Synced fields from Discord: `discordId`, `discordName`, `discordAvatar`.
   Admin-set fields: `class` (in-game class), `classIcon` (asset key for the class icon).
-- **Class** — the in-game class of a character (e.g. healer/dps/tank archetypes in NTH).
-  Class icons are **front-end assets** provided later, referenced by an asset key.
+- **Class** — the in-game class of a character. NTH has a fixed roster of 7 classes (canonical
+  list + icon-key mapping in `web/lib/classes.ts` / data-model doc): Cửu Linh, Huyết Hà, Long Ngâm,
+  Thần Tương, Thiết Y, Toái Mộng, Tố Vấn. Class icons are **front-end assets** (`.webp` under
+  `web/public/assets/classes/`), referenced by a PascalCase asset key (e.g. `CuuLinh`).
 - **Dungeon** — master data: a raid instance with a `name`, default `size` (6 or 12), description.
 - **Raid** (a.k.a. **Raid Event / Raid Team**) — a scheduled run of a Dungeon on a specific
   date/time, with a roster of participant Members and assigned positions/slots.
@@ -77,8 +79,10 @@ Both the Next.js app and the Python bot talk to the **same MongoDB database**.
 - **Landing page shows the nearest team(s) only**, not the full week. (Confirm: nearest single
   raid, or nearest of each size? — see Open Questions.)
 - **Admin can create many raids per week**; landing filters to nearest.
-- **Class & class icon are admin-managed**, never synced from Discord.
-- **Class icons are front-end assets** (provided later), referenced by a stable `classIcon` key.
+- **Class & class icon are admin-managed**, never synced from Discord. Admin picks from the
+  canonical 7-class list (`web/lib/classes.ts`); selecting a class auto-fills its `classIcon` key.
+- **Class icons are front-end assets** (`web/public/assets/classes/<key>.webp`), referenced by a
+  stable PascalCase `classIcon` key. Dungeon banners live under `web/public/assets/dungeons/`.
 - **Join requires admin approval** — bot never auto-adds a member to a roster.
 - **Timezone:** default `Asia/Ho_Chi_Minh`. Store all times in UTC; render in team TZ.
 - **One Vercel app** serves both public + admin; the bot is independent but shares the DB.

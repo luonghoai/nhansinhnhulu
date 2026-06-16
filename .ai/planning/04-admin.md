@@ -86,11 +86,13 @@ POST   /api/admin/requests/:id/reject  { reason? }      # pushes bot /notify
 ## UX requirements
 - Clean, dense, fast admin UI (tables, modals, toasts).
 - Optimistic updates where safe; confirm destructive actions.
-- Class & classIcon chosen from a controlled list (single source of truth for icon keys).
+- Class & classIcon chosen from a controlled list — `NSNL_CLASSES` in `web/lib/classes.ts`
+  (single source of truth for the 7 class names ↔ icon keys). The class `<select>` auto-fills
+  `classIcon` via `iconKeyForClass`; the icon column previews `classIconSrc(classIcon)`.
 - Validation: raid roster can't exceed `size`; member required fields.
 
 ## Dependencies
 - Discord **bot token** with permission to fetch user objects by ID (shared with the bot).
 - `ADMIN_PASSWORD_HASH`, session cookie secret.
 - `BOT_NOTIFY_URL` + `BOT_API_SECRET` to push decisions to the bot.
-- Controlled list of class names ↔ classIcon keys (shared with landing).
+- Controlled list of class names ↔ classIcon keys (shared with landing) → `web/lib/classes.ts`.

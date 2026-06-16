@@ -28,7 +28,25 @@
       "Bash(python \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"gaming community hero video background dark immersive\" --domain landing -n 3)",
       "Bash(netstat -ano)",
       "Bash(taskkill *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "PowerShell(npx eslint components/landing/RaidCard.tsx lib/assets.ts lib/mockData.ts)",
+      "PowerShell(npx tsc --noEmit; if \\($?\\) { \"tsc OK\" })",
+      "PowerShell(npx eslint lib/classes.ts lib/assets.ts lib/mockData.ts components/landing/MemberCard.tsx components/admin/MembersTable.tsx 2>&1 | Select-Object -First 40)",
+      "PowerShell(npm run *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\web\"; $env:MONGODB_URI=$null; npx tsx scripts/seed.ts 2>&1 | Select-Object -First 25)",
+      "PowerShell(cd \"C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\web\"; npx tsc --noEmit; if \\($?\\) { Write-Output \"TSC_OK\" }; $env:MONGODB_URI=$null; npx tsx scripts/seed.mts 2>&1 | Select-Object -Last 4; Write-Output \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(py *)",
+      "PowerShell(cd C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\bot; python -m venv .venv; .\\\\.venv\\\\Scripts\\\\python.exe -m pip install --quiet --upgrade pip; .\\\\.venv\\\\Scripts\\\\python.exe -m pip install --quiet -e . ruff black; Write-Output \"INSTALL_DONE exit=$LASTEXITCODE\")",
+      "PowerShell(cd C:\\\\Users\\\\Admin\\\\Desktop\\\\nsnl\\\\bot; Write-Output \"=== ruff ===\"; .\\\\.venv\\\\Scripts\\\\ruff.exe check .; Write-Output \"=== black ===\"; .\\\\.venv\\\\Scripts\\\\black.exe --check .; Write-Output \"=== import ===\"; $env:DISCORD_BOT_TOKEN=\"x\"; $env:BOT_API_SECRET=\"x\"; $env:WEB_API_BASE_URL=\"http://localhost:3000\"; .\\\\.venv\\\\Scripts\\\\python.exe -c \"import main; from bot.client import NSNLBot; from bot.notify_server import build_notify_app; from bot.config import load_config; print\\('imports OK; config=', load_config\\(\\)\\)\")",
+      "PowerShell(Remove-Item *)",
+      "Bash(ls lib/auth*)",
+      "Bash(find lib *)",
+      "Bash(ls node_modules/bcryptjs/package.json)",
+      "Bash(node -e \"console.log\\(require\\('bcryptjs'\\).hashSync\\('123456',10\\)\\)\")",
+      "Bash(node -e 'const b=require\\('\\\\''bcryptjs'\\\\''\\);console.log\\('\\\\''match:'\\\\'',b.compareSync\\('\\\\''123456'\\\\'','\\\\''$2b$10$fQ5eyj8Jqznmqi4iJFM7H.DtgOrefVBT5pbLcKCNymeTEo30EFRuW'\\\\''\\)\\)')",
+      "Bash(ls -la .env.local)",
+      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); const {combinedEnv}=loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('HASH=['+process.env.ADMIN_PASSWORD_HASH+']'\\); console.log\\('match:', require\\('bcryptjs'\\).compareSync\\('123456', process.env.ADMIN_PASSWORD_HASH||''\\)\\)\")",
+      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('HASH=['+process.env.ADMIN_PASSWORD_HASH+']'\\); console.log\\('match:', require\\('bcryptjs'\\).compareSync\\('123456', process.env.ADMIN_PASSWORD_HASH||''\\)\\)\")"
     ]
   }
 }

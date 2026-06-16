@@ -1,4 +1,3 @@
-import { getMockNearestRaids } from "@/lib/mockData";
 import { getNearestRaids } from "@/lib/queries";
 import { InkWash, SectionHeading } from "./Ornaments";
 import { RaidCard } from "./RaidCard";
@@ -8,15 +7,10 @@ export async function RaidSection() {
   let raids: Awaited<ReturnType<typeof getNearestRaids>> = [];
   let error: string | null = null;
 
-  if (process.env.MONGODB_URI) {
-    try {
-      raids = await getNearestRaids();
-    } catch {
-      error = "Không thể tải dữ liệu raid lúc này.";
-    }
-  } else {
-    // No database configured — show demo data so the UI/UX can be reviewed.
-    raids = getMockNearestRaids();
+  try {
+    raids = await getNearestRaids();
+  } catch {
+    error = "Không thể tải dữ liệu raid lúc này.";
   }
 
   return (

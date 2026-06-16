@@ -1,8 +1,11 @@
 import { Shield, UserPlus } from "lucide-react";
 import Image from "next/image";
+import { classIconSrc } from "@/lib/assets";
 import type { MemberDTO } from "@/lib/dto";
 
 export function MemberCard({ member }: { member: MemberDTO }) {
+  const classIcon = classIconSrc(member.classIcon);
+
   return (
     <div className="group relative rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 text-center backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-[var(--glass-border-hover)] hover:bg-[var(--glass-bg-hover)] hover:shadow-[var(--glow-jade)]">
       {/* Jade→gold gradient ring; an inset ink disc holds the avatar. */}
@@ -16,6 +19,21 @@ export function MemberCard({ member }: { member: MemberDTO }) {
             className="object-cover"
           />
         </div>
+
+        {/* Class-icon badge (admin-set `classIcon`) — gold-ringed ink disc anchored to
+            the avatar's lower-right. Decorative: the class name is shown as text below. */}
+        {classIcon && (
+          <span className="absolute -bottom-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-gold/50 bg-ink shadow-[var(--shadow-sm)]">
+            <Image
+              src={classIcon}
+              alt=""
+              width={20}
+              height={20}
+              className="h-full w-full object-cover"
+              unoptimized={classIcon.endsWith(".svg")}
+            />
+          </span>
+        )}
       </div>
       <p className="truncate text-sm font-medium text-text">{member.discordName}</p>
       <p className="flex items-center justify-center gap-1 truncate text-xs text-text-muted">

@@ -28,7 +28,7 @@ export function HeroVideoBackground() {
       {showVideo && YOUTUBE_ID && (
         <iframe
           className="pointer-events-none absolute left-1/2 top-1/2 h-[120vh] w-[120vw] -translate-x-1/2 -translate-y-1/2"
-          src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=1&mute=0&loop=1&playlist=${YOUTUBE_ID}&controls=0&playsinline=1&modestbranding=1&rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=1&mute=1&loop=1&playlist=${YOUTUBE_ID}&controls=0&playsinline=1&modestbranding=1&rel=0`}
           title="Background video"
           aria-hidden="true"
           tabIndex={-1}

@@ -16,13 +16,29 @@ A guild member. Keyed by Discord ID.
 | `discordId` | string | Discord | **Unique.** Snowflake as string (avoid number precision loss). |
 | `discordName` | string | Discord (synced) | display/global name |
 | `discordAvatar` | string | Discord (synced) | full CDN URL or avatar hash (store URL for simplicity) |
-| `class` | string \| null | Admin | in-game class name; null until set |
-| `classIcon` | string \| null | Admin | asset key, e.g. `"healer"` → `/assets/classes/healer.png` |
+| `class` | string \| null | Admin | in-game class name (Vietnamese); null until set. Pick from the canonical list, never free-type — see **Canonical classes** below. |
+| `classIcon` | string \| null | Admin | asset key (PascalCase), e.g. `"CuuLinh"` → `/assets/classes/CuuLinh.webp`. Auto-derived from `class` via `iconKeyForClass` (`web/lib/classes.ts`). |
 | `isActive` | boolean | Admin | default `true`; soft-disable instead of delete if needed |
 | `syncedAt` | Date | system | last time name/avatar pulled from Discord |
 | `createdAt` / `updatedAt` | Date | system | timestamps |
 
 **Indexes:** `{ discordId: 1 }` unique.
+
+**Canonical classes (Nghịch Thủy Hàn).** `class`/`classIcon` are not free-form — they come
+from a fixed list defined in `web/lib/classes.ts` (`NSNL_CLASSES`), the single source of truth
+mapping display name → icon key. Admin UI presents these as a `<select>`; choosing a class
+auto-fills `classIcon` (`iconKeyForClass`). Icon files live under `web/public/assets/classes/`
+as `<iconKey>.webp`.
+
+| `class` (display, VN) | `classIcon` (asset key) |
+|-----------------------|-------------------------|
+| Cửu Linh | `CuuLinh` |
+| Huyết Hà | `HuyetHa` |
+| Long Ngâm | `LongNgam` |
+| Thần Tương | `ThanTuong` |
+| Thiết Y | `ThietY` |
+| Toái Mộng | `ToaiMong` |
+| Tố Vấn | `ToVan` |
 
 ```jsonc
 // example
@@ -30,8 +46,8 @@ A guild member. Keyed by Discord ID.
   "discordId": "123456789012345678",
   "discordName": "AnHệ",
   "discordAvatar": "https://cdn.discordapp.com/avatars/123.../abc.png",
-  "class": "Đan Tâm",
-  "classIcon": "dan-tam",
+  "class": "Cửu Linh",
+  "classIcon": "CuuLinh",
   "isActive": true,
   "syncedAt": "2026-06-12T03:00:00Z"
 }
@@ -46,10 +62,10 @@ Master data describing a raid instance type.
 | Field | Type | Notes |
 |-------|------|-------|
 | `_id` | ObjectId | |
-| `name` | string | e.g. "Tử Cấm Chi Điên" |
+| `name` | string | e.g. "Trích Tiên Kinh Đào" (6-man), "Kính Thiên Các - Cấm Các" (12-man) |
 | `size` | number | **6** or **12** (enum). Drives raid slot count. |
 | `description` | string | optional |
-| `imageKey` | string \| null | optional banner/thumbnail asset key |
+| `imageKey` | string \| null | optional banner asset key → `/assets/dungeons/<imageKey>`. May carry an explicit extension (e.g. `"TrichTienKinhDao.png"`); a bare key defaults to `.webp`. Resolved via `dungeonBannerSrc` (`web/lib/assets.ts`). |
 | `isActive` | boolean | default `true` |
 | `createdAt`/`updatedAt` | Date | |
 

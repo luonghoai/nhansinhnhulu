@@ -40,6 +40,7 @@ export const createRaidSchema = z.object({
   startAt: z.string().datetime(),
   title: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  slots: z.array(slotSchema).optional(),
 });
 
 export const updateRaidSlotsSchema = z.object({

@@ -3,8 +3,33 @@ import { toDungeonDTO, toMemberDTO, toRaidDTO, type DungeonDTO, type MemberDTO, 
 import { Dungeon } from "./models/Dungeon";
 import { Member } from "./models/Member";
 import { Raid } from "./models/Raid";
+import { getWeekRangeUtc } from "./time";
 
 const NEAREST_SIZES = [6, 12] as const;
+
+export type TeamStats = {
+  /** Active members in the directory. */
+  memberCount: number;
+  /** Raids marked completed (dungeons conquered). */
+  dungeonsConquered: number;
+  /** Raids scheduled within the current team-timezone week. */
+  raidsThisWeek: number;
+};
+
+/** Aggregate counts for the landing "Về chúng tôi" stat cards. */
+export async function getTeamStats(): Promise<TeamStats> {
+  await connectToDatabase();
+
+  const { start, end } = getWeekRangeUtc();
+
+  const [memberCount, dungeonsConquered, raidsThisWeek] = await Promise.all([
+    Member.countDocuments({ isActive: true }),
+    Raid.countDocuments({ status: "completed" }),
+    Raid.countDocuments({ startAt: { $gte: start, $lte: end } }),
+  ]);
+
+  return { memberCount, dungeonsConquered, raidsThisWeek };
+}
 
 export type NearestRaid = {
   raid: RaidDTO;

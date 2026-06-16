@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { DungeonDTO, MemberDTO, RaidDTO } from "@/lib/dto";
 import { formatInTeamTimezone } from "@/lib/time";
+import { MemberPicker } from "./MemberPicker";
 
 interface RaidsPanelProps {
   initialRaids: RaidDTO[];
@@ -16,16 +17,36 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
   const [dungeonId, setDungeonId] = useState(dungeons[0]?.id ?? "");
   const [startAt, setStartAt] = useState("");
   const [title, setTitle] = useState("");
+  // Roster chosen at creation time, keyed by slot index → memberId.
+  const [roster, setRoster] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const memberById = new Map(members.map((m) => [m.id, m]));
   const dungeonById = new Map(dungeons.map((d) => [d.id, d]));
 
+  const selectedSize = dungeonById.get(dungeonId)?.size ?? 0;
+  // Members already placed in the create-form roster — disabled in every other slot picker.
+  const rosteredMemberIds = new Set(Object.values(roster));
+
+  function setRosterSlot(index: number, memberId: string) {
+    setRoster((prev) => {
+      const next = { ...prev };
+      if (memberId) next[index] = memberId;
+      else delete next[index];
+      return next;
+    });
+  }
+
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    const slots = Object.entries(roster).map(([index, memberId]) => ({
+      index: Number(index),
+      memberId,
+    }));
 
     const res = await fetch("/api/admin/raids", {
       method: "POST",
@@ -34,6 +55,7 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
         dungeonId,
         startAt: new Date(startAt).toISOString(),
         title: title || null,
+        slots: slots.length > 0 ? slots : undefined,
       }),
     });
 
@@ -47,6 +69,7 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
 
     setTitle("");
     setStartAt("");
+    setRoster({});
     router.refresh();
   }
 
@@ -98,7 +121,10 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
           <select
             id="dungeon"
             value={dungeonId}
-            onChange={(e) => setDungeonId(e.target.value)}
+            onChange={(e) => {
+              setDungeonId(e.target.value);
+              setRoster({});
+            }}
             required
             className="w-56 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           >
@@ -133,6 +159,33 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
             className="w-56 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           />
         </div>
+        {selectedSize > 0 && (
+          <div className="w-full">
+            <p className="mb-2 text-sm font-medium text-zinc-700">
+              Roster{" "}
+              <span className="font-normal text-zinc-400">
+                (optional · {Object.keys(roster).length}/{selectedSize} filled · leave open as needed)
+              </span>
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: selectedSize }, (_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 rounded-md border border-zinc-200 p-2"
+                >
+                  <span className="w-6 text-xs text-zinc-400">{index + 1}</span>
+                  <MemberPicker
+                    members={members}
+                    value={roster[index] ?? null}
+                    onChange={(memberId) => setRosterSlot(index, memberId ?? "")}
+                    disabledIds={rosteredMemberIds}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={submitting || dungeons.length === 0}
@@ -154,6 +207,10 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
           {initialRaids.map((raid) => {
             const dungeon = dungeonById.get(raid.dungeonId);
             const filled = raid.slots.filter((s) => s.memberId).length;
+            // Members already placed in this raid — disabled in this raid's other slot pickers.
+            const assignedInRaid = new Set(
+              raid.slots.map((s) => s.memberId).filter((id): id is string => Boolean(id))
+            );
             return (
               <div key={raid.id} className="rounded-xl border border-zinc-200 bg-white p-5">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -194,18 +251,12 @@ export function RaidsPanel({ initialRaids, dungeons, members }: RaidsPanelProps)
                       key={slot.index}
                       className="flex items-center gap-2 rounded-md border border-zinc-200 p-2"
                     >
-                      <select
-                        value={slot.memberId ?? ""}
-                        onChange={(e) => updateSlot(raid, slot.index, e.target.value || null)}
-                        className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                      >
-                        <option value="">— open —</option>
-                        {members.map((member) => (
-                          <option key={member.id} value={member.id}>
-                            {member.discordName}
-                          </option>
-                        ))}
-                      </select>
+                      <MemberPicker
+                        members={members}
+                        value={slot.memberId ?? null}
+                        onChange={(memberId) => updateSlot(raid, slot.index, memberId)}
+                        disabledIds={assignedInRaid}
+                      />
                       <input
                         defaultValue={slot.roleLabel ?? ""}
                         placeholder="role"

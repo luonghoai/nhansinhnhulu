@@ -1,0 +1,1 @@
+"""NSNL Discord bot package."""
