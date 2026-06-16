@@ -1,0 +1,6 @@
+# NSNL Discord bot — runtime dependencies (mirrors pyproject.toml [project.dependencies])
+# Install: pip install -r requirements.txt
+discord.py>=2.4
+httpx>=0.27
+aiohttp>=3.9
+python-dotenv>=1.0

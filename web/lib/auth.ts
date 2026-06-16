@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { getIronSession, unsealData, type SessionOptions } from "iron-session";
-import bcrypt from "bcryptjs";
 
 export interface AdminSessionData {
   isAdmin?: boolean;
@@ -46,9 +46,23 @@ export async function isAdminSessionCookieValid(cookieValue: string | undefined)
   }
 }
 
-/** Constant-time-ish compare against ADMIN_PASSWORD_HASH (bcrypt). */
+/**
+ * Verifies the admin password against the plaintext `ADMIN_PASSWORD` env var,
+ * using a constant-time comparison.
+ */
 export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  if (!hash) return false;
-  return bcrypt.compare(password, hash);
+  const plain = process.env.ADMIN_PASSWORD;
+  if (!plain) return false;
+  return constantTimeEquals(password, plain);
+}
+
+/**
+ * Length-independent constant-time string comparison. Both inputs are hashed to
+ * a fixed-size digest first so `timingSafeEqual` never leaks length via a
+ * thrown error or early return.
+ */
+function constantTimeEquals(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a, "utf8").digest();
+  const hb = createHash("sha256").update(b, "utf8").digest();
+  return timingSafeEqual(ha, hb);
 }
