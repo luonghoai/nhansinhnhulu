@@ -22,6 +22,7 @@ const RaidSchema = new Schema(
       enum: ["scheduled", "completed", "cancelled"],
       default: "scheduled",
     },
+    announcedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -41,6 +41,7 @@ export type RaidDTO = {
   notes?: string | null;
   slots: SlotDTO[];
   status: "scheduled" | "completed" | "cancelled";
+  announcedAt?: string | null;
 };
 
 export type JoinRequestDTO = {
@@ -97,6 +98,7 @@ export function toRaidDTO(doc: HydratedDocument<RaidDoc>): RaidDTO {
     notes: doc.notes ?? null,
     slots: (doc.slots ?? []).map(toSlotDTO),
     status: doc.status as RaidDTO["status"],
+    announcedAt: doc.announcedAt ? doc.announcedAt.toISOString() : null,
   };
 }
 

@@ -48,8 +48,9 @@
 - `discord.py` v2 with **slash commands** + **components** (select menus, buttons).
 - Data access via the web `/api/bot/*` endpoints (Pattern B); no direct Atlas access.
 - Bot talks to data ONLY via the web `/api/bot/*` endpoints (Pattern B), not Mongo directly.
-- Bot also runs a **tiny HTTP server** (aiohttp/FastAPI) exposing a `/notify` endpoint the web
-  app calls on approve/reject. Stateless; safe to restart.
+- **No inbound HTTP server.** The bot is a pure interaction handler — it does not expose a
+  `/notify` endpoint. Notifications (channel announce, member DMs) are sent by the **web app**
+  calling the Discord REST API directly with the bot token. See `07-raid-announce.md`.
 
 ### MongoDB Atlas
 - Single source of truth shared by both apps.
@@ -60,7 +61,8 @@
 **Pattern B — Bot calls the Next.js API (shared secret).**
 The **Next.js API is the single source of business logic**. The bot performs ALL reads/writes
 through `/api/bot/*` endpoints, authenticated with `X-Bot-Secret`. The bot does NOT touch Mongo
-directly. The web app also **pushes** decision notifications to the bot (see below).
+directly. Notifications go out via the web app calling the **Discord REST API** directly with
+the bot token — not through the bot (see below).
 
 - Centralizes validation + invariants in one codebase (no schema drift).
 - Trade-off: the web app must be up for the bot to function (acceptable for v1).
@@ -98,9 +100,10 @@ member ──/raids──► bot ──(create JoinRequest: pending)──► Mo
                                                             │
 admin opens dashboard ──reads pending──◄────────────────────┘
 admin approves ──► Raid roster updated + JoinRequest=approved ──► Mongo
-web POSTs bot notify endpoint ──► bot DMs member; /myplan now shows raid
+web calls Discord REST API ──► DMs member directly; /myplan now shows raid
 landing page ──reads nearest raid roster──► shows member
 ```
 
-> Notifications are **push**: on approve/reject the web app calls the bot's notify endpoint
-> (secured by the shared secret), so the member is DM'd immediately.
+> Notifications are sent by the **web app calling Discord REST directly** (bot token) — no
+> bot HTTP server needed. On approve/reject the web DMs the member; on raid creation with
+> pre-filled slots the web posts to the announce channel. See `07-raid-announce.md`.

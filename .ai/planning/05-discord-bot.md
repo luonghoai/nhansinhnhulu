@@ -2,7 +2,8 @@
 
 Python `discord.py` v2. Separate service on a **VPS**. **Pattern B:** the bot talks to data
 ONLY through the web `/api/bot/*` endpoints (shared secret) — it does NOT touch Mongo directly.
-It also runs a tiny HTTP server so the web app can **push** approve/reject notifications.
+It is a **pure interaction handler** with no inbound HTTP server; approve/reject DMs and raid
+announcements are sent by the web app via the Discord REST API (see `07-raid-announce.md`).
 
 ---
 
@@ -36,13 +37,11 @@ The bot **never** auto-adds a member to a roster — admin approval required.
   - Else create `JoinRequest{ status: pending }`.
   - Confirm ephemerally: "Request sent — waiting for admin approval."
 
-### Decision notifications (PUSH)
-- The bot runs a small HTTP server (aiohttp or FastAPI) with `POST /notify`
-  guarded by `X-Bot-Secret`.
-- On approve/reject, the **web app calls** `{BOT_NOTIFY_URL}/notify`
-  `{ discordId, decision, raidId, reason? }`.
-- The bot DMs the member the outcome. No polling loop.
-- Handle DM-blocked users gracefully (log, return 200 so web can still mark notified).
+### Decision notifications
+- **No bot HTTP server.** The web app sends DMs and channel announcements by calling the
+  Discord REST API directly using `DISCORD_BOT_TOKEN`. The bot does not expose a `/notify`
+  endpoint and does not need to be reachable by the web app.
+- See `07-raid-announce.md` for the full Discord REST integration design.
 
 ### (Optional) `/me` or `/sync`
 - Force a profile sync (refresh name/avatar) — nice-to-have.
@@ -82,13 +81,14 @@ Admin later fills class/classIcon in the dashboard.
 ## Bot config / secrets
 - `DISCORD_BOT_TOKEN`, `GUILD_ID` (fast command sync in dev),
   `WEB_API_BASE_URL` (where `/api/bot/*` lives), `BOT_API_SECRET` (shared with web),
-  `BOT_NOTIFY_PORT` (the bot's `/notify` server), `TEAM_TIMEZONE` (default `Asia/Ho_Chi_Minh`).
-- No `MONGODB_URI` on the bot (Pattern B).
+  `TEAM_TIMEZONE` (default `Asia/Ho_Chi_Minh`).
+- No `MONGODB_URI` on the bot (Pattern B). No `BOT_NOTIFY_PORT` — bot has no HTTP server.
 
 ## Deployment (VPS)
 - Long-running process on a **VPS**: systemd unit or Docker. Vercel is NOT suitable.
-- Expose the `/notify` HTTP server on a port/hostname reachable by the web app
-  (public hostname + secret, or a tunnel). Health log on ready; auto-reconnect; restart-safe.
+- **No inbound HTTP server** — the bot only makes outbound calls to `/api/bot/*` and to
+  Discord. Notifications are sent by the web app via the Discord REST API (see
+  `07-raid-announce.md`). Health log on ready; auto-reconnect; restart-safe.
 
 ## Commands summary
 | Command | Who | Effect |

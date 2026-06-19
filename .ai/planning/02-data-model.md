@@ -87,6 +87,7 @@ A scheduled run of a dungeon with a roster. (a.k.a. Raid Event / Raid Team)
 | `notes` | string \| null | optional |
 | `slots` | Slot[] | length === size |
 | `status` | string | `scheduled` \| `completed` \| `cancelled` (default `scheduled`) |
+| `announcedAt` | Date \| null | UTC time the channel announcement was sent; `null` if no filled slots at creation or if the Discord API call failed. |
 | `createdAt`/`updatedAt` | Date | |
 
 **Slot (embedded):**

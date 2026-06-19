@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { JoinRequest } from "@/lib/models/JoinRequest";
+import { Raid } from "@/lib/models/Raid";
+import { Dungeon } from "@/lib/models/Dungeon";
 import { toJoinRequestDTO } from "@/lib/dto";
 import { rejectRequestSchema } from "@/lib/validators";
-import { notifyBot } from "@/lib/botClient";
+import { notifyDecision } from "@/lib/discordClient";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,14 +31,22 @@ export async function POST(request: Request, { params }: Params) {
   joinRequest.decidedBy = "admin";
   joinRequest.decidedAt = new Date();
 
-  const notified = await notifyBot({
-    discordId: joinRequest.discordId,
-    decision: "rejected",
-    raidId: joinRequest.raidId.toString(),
-    reason: parsed.data.reason,
-  });
-  if (notified) {
+  // DM the member directly via the Discord REST API. Never let a Discord failure
+  // block the decision: set notifiedAt on success, but the rejection still succeeds
+  // (and admin isn't stuck) if Discord errors (see .ai/planning/07-raid-announce.md).
+  const raid = await Raid.findById(joinRequest.raidId).select("dungeonId startAt");
+  const dungeon = raid ? await Dungeon.findById(raid.dungeonId).select("name") : null;
+  try {
+    await notifyDecision({
+      discordId: joinRequest.discordId,
+      decision: "rejected",
+      dungeonName: dungeon?.name ?? "raid",
+      startAt: (raid?.startAt ?? new Date()).toISOString(),
+      reason: parsed.data.reason,
+    });
     joinRequest.notifiedAt = new Date();
+  } catch (err) {
+    console.warn(`Failed to DM rejection to ${joinRequest.discordId}:`, err);
   }
 
   await joinRequest.save();

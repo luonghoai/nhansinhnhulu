@@ -46,7 +46,12 @@
       "Bash(node -e 'const b=require\\('\\\\''bcryptjs'\\\\''\\);console.log\\('\\\\''match:'\\\\'',b.compareSync\\('\\\\''123456'\\\\'','\\\\''$2b$10$fQ5eyj8Jqznmqi4iJFM7H.DtgOrefVBT5pbLcKCNymeTEo30EFRuW'\\\\''\\)\\)')",
       "Bash(ls -la .env.local)",
       "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); const {combinedEnv}=loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('HASH=['+process.env.ADMIN_PASSWORD_HASH+']'\\); console.log\\('match:', require\\('bcryptjs'\\).compareSync\\('123456', process.env.ADMIN_PASSWORD_HASH||''\\)\\)\")",
-      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('HASH=['+process.env.ADMIN_PASSWORD_HASH+']'\\); console.log\\('match:', require\\('bcryptjs'\\).compareSync\\('123456', process.env.ADMIN_PASSWORD_HASH||''\\)\\)\")"
+      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('HASH=['+process.env.ADMIN_PASSWORD_HASH+']'\\); console.log\\('match:', require\\('bcryptjs'\\).compareSync\\('123456', process.env.ADMIN_PASSWORD_HASH||''\\)\\)\")",
+      "Bash(cat lib/botClient.ts)",
+      "Bash(cat app/api/admin/raids/route.ts)",
+      "Bash(echo \"TSC_DONE_EXIT=$?\")",
+      "Bash(node ./node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

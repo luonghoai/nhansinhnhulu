@@ -5,7 +5,7 @@ import { Member } from "@/lib/models/Member";
 import { Raid } from "@/lib/models/Raid";
 import { toRaidDTO } from "@/lib/dto";
 import { createRaidSchema } from "@/lib/validators";
-import { announceRaid } from "@/lib/botClient";
+import { announceRaid } from "@/lib/discordClient";
 
 export async function GET() {
   await connectToDatabase();
@@ -58,13 +58,16 @@ export async function POST(request: Request) {
     };
   }
 
-  let rosteredMembers: { discordId: string }[] = [];
+  const discordIdByMemberId = new Map<string, string>();
   if (assignedMemberIds.size > 0) {
-    rosteredMembers = await Member.find({ _id: { $in: [...assignedMemberIds] } }).select(
-      "discordId"
-    );
+    const rosteredMembers = await Member.find({
+      _id: { $in: [...assignedMemberIds] },
+    }).select("discordId");
     if (rosteredMembers.length !== assignedMemberIds.size) {
       return NextResponse.json({ error: "One or more members not found" }, { status: 400 });
+    }
+    for (const m of rosteredMembers) {
+      discordIdByMemberId.set(m._id.toString(), m.discordId);
     }
   }
 
@@ -77,18 +80,30 @@ export async function POST(request: Request) {
     slots,
   });
 
-  // Announce the new raid in the bot's text channel, @-mentioning rostered members.
-  // Fire to the bot but never let a bot outage fail the creation (see CONTEXT.md).
-  if (rosteredMembers.length > 0) {
-    await announceRaid({
-      raidId: raid._id.toString(),
-      dungeonName: dungeon.name,
-      title: raid.title ?? null,
-      startAt: raid.startAt.toISOString(),
-      size: raid.size as 6 | 12,
-      discordIds: rosteredMembers.map((m) => m.discordId),
-      landingUrl: process.env.SITE_URL ?? "",
-    });
+  // Announce the new raid directly via the Discord REST API, @-mentioning each
+  // rostered member. Non-blocking: a Discord outage must never fail raid creation
+  // (see .ai/planning/07-raid-announce.md).
+  const filledSlots = slots
+    .filter((s) => s.memberId && discordIdByMemberId.has(s.memberId))
+    .map((s) => ({
+      index: s.index,
+      discordId: discordIdByMemberId.get(s.memberId as string) as string,
+      roleLabel: s.roleLabel,
+    }));
+
+  if (filledSlots.length > 0) {
+    try {
+      await announceRaid({
+        raidId: raid._id.toString(),
+        dungeonName: dungeon.name,
+        startAt: raid.startAt.toISOString(),
+        slots: filledSlots,
+      });
+      raid.announcedAt = new Date();
+      await raid.save();
+    } catch (err) {
+      console.warn(`Failed to announce raid ${raid._id.toString()}:`, err);
+    }
   }
 
   return NextResponse.json({ raid: toRaidDTO(raid) }, { status: 201 });

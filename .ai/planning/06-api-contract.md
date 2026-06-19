@@ -2,7 +2,8 @@
 
 Defines the shared shapes and endpoints. **Integration = Pattern B (decided).** The bot does
 NOT touch Mongo directly — it calls `/api/bot/*` on the Next.js app with a shared secret.
-The web app, in turn, **pushes** decision notifications to the bot's `/notify` endpoint.
+Decision DMs and raid announcements are sent by the web app calling the **Discord REST API**
+directly (bot token) — there is no Web→Bot push channel. See `07-raid-announce.md`.
 
 ---
 
@@ -89,14 +90,16 @@ POST /api/bot/requests                { raidId, discordId } → JoinRequest (pen
                                         (guards: already rostered / already pending / full)
 ```
 
-## Web → Bot endpoint (REQUIRED — push notifications)
-The bot runs a tiny HTTP server. Web calls this on approve/reject. Same shared secret.
-```
-POST {BOT_NOTIFY_URL}/notify          { discordId, decision: "approved"|"rejected",
-                                        raidId, reason? }  → 200 (bot DMs the member)
-```
-Web sets `notifiedAt` on the JoinRequest after a successful notify call. If the bot is
-unreachable, web still records the decision; a member can re-check via `/myplan`.
+## Web → Discord (direct REST — replaces bot HTTP server)
+The web app calls the **Discord REST API** directly using `DISCORD_BOT_TOKEN`.
+No bot HTTP server, no `BOT_NOTIFY_URL`. See `07-raid-announce.md` for full detail.
+
+**On approve/reject:** web opens a DM channel then sends the member a message.
+Web sets `notifiedAt` on the JoinRequest after a successful call. If Discord is
+unreachable, web still records the decision; the member can re-check via `/myplan`.
+
+**On raid creation with filled slots:** web posts an embed to `RAID_ANNOUNCE_CHANNEL_ID`,
+mentioning each invited member. Web sets `raid.announcedAt` on success.
 
 ---
 
