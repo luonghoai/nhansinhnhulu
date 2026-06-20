@@ -14,9 +14,7 @@ export function InkWash({ variant }: { variant: "team" | "raids" }) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 -z-0 ${
-        variant === "team" ? "ink-wash-team" : "ink-wash-raids"
-      }`}
+      className={`pointer-events-none absolute inset-0 -z-0 ink-wash-${variant}`}
     />
   );
 }

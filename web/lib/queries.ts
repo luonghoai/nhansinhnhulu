@@ -1,8 +1,18 @@
 import { connectToDatabase } from "./db";
-import { toDungeonDTO, toMemberDTO, toRaidDTO, type DungeonDTO, type MemberDTO, type RaidDTO } from "./dto";
+import {
+  toArenaTeamDTO,
+  toDungeonDTO,
+  toMemberDTO,
+  toRaidDTO,
+  type ArenaTeamDTO,
+  type DungeonDTO,
+  type MemberDTO,
+  type RaidDTO,
+} from "./dto";
 import { Dungeon } from "./models/Dungeon";
 import { Member } from "./models/Member";
 import { Raid } from "./models/Raid";
+import { ArenaTeam } from "./models/ArenaTeam";
 import { getWeekRangeUtc } from "./time";
 
 const NEAREST_SIZES = [6, 12] as const;
@@ -76,6 +86,41 @@ export async function getNearestRaids(): Promise<NearestRaid[]> {
     dungeon: dungeonById.get(raid.dungeonId.toString())!,
     members: Object.fromEntries(
       raid.slots
+        .filter((s) => s.memberId)
+        .map((s) => [s.memberId!.toString(), membersById[s.memberId!.toString()]])
+    ),
+  }));
+}
+
+export type ArenaTeamWithMembers = {
+  team: ArenaTeamDTO;
+  members: Record<string, MemberDTO>;
+};
+
+/** Active 3v3 arena squads with their rostered members resolved, for the public page. */
+export async function getArenaTeams(): Promise<ArenaTeamWithMembers[]> {
+  await connectToDatabase();
+
+  const teams = await ArenaTeam.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 });
+
+  const memberIds = [
+    ...new Set(
+      teams.flatMap((team) =>
+        team.slots.filter((s) => s.memberId).map((s) => s.memberId!.toString())
+      )
+    ),
+  ];
+
+  const members = await Member.find({ _id: { $in: memberIds } });
+  const membersById: Record<string, MemberDTO> = {};
+  for (const member of members) {
+    membersById[member._id.toString()] = toMemberDTO(member);
+  }
+
+  return teams.map((team) => ({
+    team: toArenaTeamDTO(team),
+    members: Object.fromEntries(
+      team.slots
         .filter((s) => s.memberId)
         .map((s) => [s.memberId!.toString(), membersById[s.memberId!.toString()]])
     ),

@@ -3,24 +3,27 @@ import { connectToDatabase } from "@/lib/db";
 import { Member } from "@/lib/models/Member";
 import { Dungeon } from "@/lib/models/Dungeon";
 import { Raid } from "@/lib/models/Raid";
+import { ArenaTeam } from "@/lib/models/ArenaTeam";
 import { JoinRequest } from "@/lib/models/JoinRequest";
 
 const SECTIONS = [
   { href: "/admin/members", label: "Members", countKey: "members" as const },
   { href: "/admin/dungeons", label: "Dungeons", countKey: "dungeons" as const },
   { href: "/admin/raids", label: "Raids", countKey: "raids" as const },
+  { href: "/admin/arena", label: "3v3 Teams", countKey: "arenaTeams" as const },
   { href: "/admin/requests", label: "Pending Requests", countKey: "pendingRequests" as const },
 ];
 
 async function getCounts() {
   await connectToDatabase();
-  const [members, dungeons, raids, pendingRequests] = await Promise.all([
+  const [members, dungeons, raids, arenaTeams, pendingRequests] = await Promise.all([
     Member.countDocuments({ isActive: true }),
     Dungeon.countDocuments({ isActive: true }),
     Raid.countDocuments({}),
+    ArenaTeam.countDocuments({ isActive: true }),
     JoinRequest.countDocuments({ status: "pending" }),
   ]);
-  return { members, dungeons, raids, pendingRequests };
+  return { members, dungeons, raids, arenaTeams, pendingRequests };
 }
 
 export default async function AdminDashboardPage() {
@@ -43,7 +46,7 @@ export default async function AdminDashboardPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {SECTIONS.map((section) => (
           <Link
             key={section.href}

@@ -76,6 +76,69 @@ body {
   background-image: radial-gradient(70% 60% at 50% -10%, rgba(15, 118, 110, 0.18), transparent 70%),
     radial-gradient(40% 40% at 85% 100%, rgba(212, 175, 55, 0.06), transparent 70%);
 }
+/* ─────────────────────────────────────────────────────────────
+   3v3 Arena — light "Đại Hội Tỉ Võ" tournament theme.
+   A misty sumi-e ink-wash with gold brush-calligraphy + cinnabar
+   seal accents (page override; see pages/3v3-arena.md). This is the
+   one intentionally LIGHT surface in the otherwise dark site.
+   ───────────────────────────────────────────────────────────── */
+
+/* Rice-paper / fog base gradient. */
+.arena-paper {
+  background: radial-gradient(125% 85% at 50% -5%, #fcfbf7 0%, #eef0ea 42%, #e1e5de 100%);
+}
+
+/* Drifting fog bands layered over the mountains. */
+.arena-mist {
+  background-image: linear-gradient(
+      to top,
+      rgba(244, 246, 242, 0.9) 0%,
+      rgba(255, 255, 255, 0) 32%,
+      rgba(255, 255, 255, 0) 64%,
+      rgba(244, 246, 242, 0.5) 100%
+    ),
+    radial-gradient(55% 38% at 50% 74%, rgba(255, 255, 255, 0.85), transparent 70%);
+}
+
+/* Gold-foil brush calligraphy fill for the hero title. */
+.arena-gold-text {
+  background: linear-gradient(180deg, #a9781a 0%, #e7c75f 36%, #d4af37 58%, #8f6e1c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 1px rgba(40, 32, 10, 0.4));
+}
+
+/* Cinnabar "seal" ribbon (date/event badge + rank pills). */
+.arena-seal {
+  background: linear-gradient(180deg, #a83028 0%, #8f231d 100%);
+  color: #f6ead7;
+  box-shadow: inset 0 0 0 1px rgba(246, 234, 215, 0.18),
+    inset 0 0 0 3px rgba(143, 35, 29, 0.6), 0 6px 16px rgba(120, 28, 22, 0.25);
+}
+
+/* Slow drift for the topmost fog layer (motion-safe only). */
+@keyframes mist-drift {
+  0% {
+    transform: translateX(-2%);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(2%);
+    opacity: 0.85;
+  }
+}
+.motion-safe\:mist-drift {
+  animation: mist-drift 16s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe\:mist-drift {
+    animation: none;
+  }
+}
 
 /* Gold→jade hairline along the top edge of a framed card. */
 .frame-hairline::before {

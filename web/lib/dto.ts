@@ -3,6 +3,7 @@ import type { MemberDoc } from "./models/Member";
 import type { DungeonDoc } from "./models/Dungeon";
 import type { RaidDoc, SlotDoc } from "./models/Raid";
 import type { JoinRequestDoc } from "./models/JoinRequest";
+import type { ArenaTeamDoc, ArenaSlotDoc } from "./models/ArenaTeam";
 
 // Shapes mirror the DTOs in `.ai/planning/06-api-contract.md`.
 
@@ -103,6 +104,46 @@ export function toRaidDTO(doc: HydratedDocument<RaidDoc>): RaidDTO {
 }
 
 export type RaidWithDungeonDTO = RaidDTO & { dungeon: DungeonDTO };
+
+export type ArenaSlotDTO = {
+  index: number;
+  roleLabel: string | null;
+  memberId: string | null;
+};
+
+export type ArenaTeamDTO = {
+  id: string;
+  name: string;
+  tagline: string | null;
+  rankLabel: string | null;
+  wins: number;
+  losses: number;
+  slots: ArenaSlotDTO[];
+  notes: string | null;
+  isActive: boolean;
+};
+
+function toArenaSlotDTO(slot: ArenaSlotDoc): ArenaSlotDTO {
+  return {
+    index: slot.index,
+    roleLabel: slot.roleLabel ?? null,
+    memberId: slot.memberId ? slot.memberId.toString() : null,
+  };
+}
+
+export function toArenaTeamDTO(doc: HydratedDocument<ArenaTeamDoc>): ArenaTeamDTO {
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+    tagline: doc.tagline ?? null,
+    rankLabel: doc.rankLabel ?? null,
+    wins: doc.wins ?? 0,
+    losses: doc.losses ?? 0,
+    slots: (doc.slots ?? []).map(toArenaSlotDTO),
+    notes: doc.notes ?? null,
+    isActive: doc.isActive ?? true,
+  };
+}
 
 export function toJoinRequestDTO(doc: HydratedDocument<JoinRequestDoc>): JoinRequestDTO {
   return {

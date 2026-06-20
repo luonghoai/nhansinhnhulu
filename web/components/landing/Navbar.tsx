@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function Navbar() {
@@ -25,18 +26,24 @@ export function Navbar() {
           NHÂN SINH NHƯ LỮ
         </span>
         <div className="flex items-center gap-6 text-sm text-text-muted">
-          <a
-            href="#team"
+          <Link
+            href="/#team"
             className="cursor-pointer rounded-sm transition-colors duration-200 hover:text-jade focus-visible:outline focus-visible:outline-2 focus-visible:outline-jade"
           >
             Team
-          </a>
-          <a
-            href="#raids"
+          </Link>
+          <Link
+            href="/#raids"
             className="cursor-pointer rounded-sm transition-colors duration-200 hover:text-jade focus-visible:outline focus-visible:outline-2 focus-visible:outline-jade"
           >
             Raids
-          </a>
+          </Link>
+          <Link
+            href="/3v3"
+            className="cursor-pointer rounded-sm transition-colors duration-200 hover:text-jade focus-visible:outline focus-visible:outline-2 focus-visible:outline-jade"
+          >
+            Đấu Trường 3v3
+          </Link>
         </div>
       </div>
     </nav>

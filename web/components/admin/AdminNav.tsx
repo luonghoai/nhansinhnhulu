@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin/members", label: "Members" },
   { href: "/admin/dungeons", label: "Dungeons" },
   { href: "/admin/raids", label: "Raids" },
+  { href: "/admin/arena", label: "3v3 Arena" },
   { href: "/admin/requests", label: "Join Requests" },
 ];
 
