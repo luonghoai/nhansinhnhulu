@@ -1,7 +1,12 @@
 # UI Plan — Giải Đấu Cờ 5 Quân (`/admin/tournaments`)
 
-> Companion to `09-co-5-quan-feature.md`. Scope = **admin dashboard UI only** (bot is
-> announce-only; no public page in v1). Built with the **ui-ux-pro-max** skill.
+> Companion to `09-co-5-quan-feature.md`. Built with the **ui-ux-pro-max** skill.
+>
+> **Surfaces:** (1) the **admin dashboard** (light-zinc, data entry) and (2) a **public
+> poster page** at `/giai-dau` (rice-paper / ink-mountain / gold-calligraphy theme, modelled
+> on the owner's key art — reuses the `/3v3` arena tokens: `arena-paper`, `arena-mist`,
+> `arena-gold-text`, `arena-seal`, `MistScene`, `BambooSprig`). The public page is read-only
+> and shows the bracket + standings of the most recent non-draft tournament.
 >
 > **Theme decision (locked):** the tournament tab uses the existing **light-zinc admin
 > theme** — identical to Members / Dungeons / Raids / 3v3 admin tables. The poster

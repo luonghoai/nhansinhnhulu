@@ -44,6 +44,12 @@ export function Navbar() {
           >
             Đấu Trường 3v3
           </Link>
+          <Link
+            href="/giai-dau"
+            className="cursor-pointer rounded-sm transition-colors duration-200 hover:text-jade focus-visible:outline focus-visible:outline-2 focus-visible:outline-jade"
+          >
+            Cờ 5 Quân
+          </Link>
         </div>
       </div>
     </nav>

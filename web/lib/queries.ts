@@ -4,15 +4,18 @@ import {
   toDungeonDTO,
   toMemberDTO,
   toRaidDTO,
+  toTournamentDTO,
   type ArenaTeamDTO,
   type DungeonDTO,
   type MemberDTO,
   type RaidDTO,
+  type TournamentDTO,
 } from "./dto";
 import { Dungeon } from "./models/Dungeon";
 import { Member } from "./models/Member";
 import { Raid } from "./models/Raid";
 import { ArenaTeam } from "./models/ArenaTeam";
+import { Tournament } from "./models/Tournament";
 import { getWeekRangeUtc } from "./time";
 
 const NEAREST_SIZES = [6, 12] as const;
@@ -125,4 +128,31 @@ export async function getArenaTeams(): Promise<ArenaTeamWithMembers[]> {
         .map((s) => [s.memberId!.toString(), membersById[s.memberId!.toString()]])
     ),
   }));
+}
+
+export type FeaturedTournament = {
+  tournament: TournamentDTO;
+  members: Record<string, MemberDTO>;
+};
+
+/** Most recent non-draft tournament (seeded → completed), with linked members resolved. */
+export async function getFeaturedTournament(): Promise<FeaturedTournament | null> {
+  await connectToDatabase();
+
+  const doc = await Tournament.findOne({ status: { $ne: "draft" } }).sort({ startAt: -1 });
+  if (!doc) return null;
+
+  const tournament = toTournamentDTO(doc);
+
+  const memberIds = tournament.entrants
+    .map((e) => e.memberId)
+    .filter((m): m is string => Boolean(m));
+
+  const members = await Member.find({ _id: { $in: memberIds } });
+  const membersById: Record<string, MemberDTO> = {};
+  for (const member of members) {
+    membersById[member._id.toString()] = toMemberDTO(member);
+  }
+
+  return { tournament, members: membersById };
 }
