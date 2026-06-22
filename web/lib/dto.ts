@@ -4,6 +4,12 @@ import type { DungeonDoc } from "./models/Dungeon";
 import type { RaidDoc, SlotDoc } from "./models/Raid";
 import type { JoinRequestDoc } from "./models/JoinRequest";
 import type { ArenaTeamDoc, ArenaSlotDoc } from "./models/ArenaTeam";
+import type {
+  TournamentDoc,
+  EntrantDoc,
+  MatchDoc,
+  StandingDoc,
+} from "./models/Tournament";
 
 // Shapes mirror the DTOs in `.ai/planning/06-api-contract.md`.
 
@@ -142,6 +148,102 @@ export function toArenaTeamDTO(doc: HydratedDocument<ArenaTeamDoc>): ArenaTeamDT
     slots: (doc.slots ?? []).map(toArenaSlotDTO),
     notes: doc.notes ?? null,
     isActive: doc.isActive ?? true,
+  };
+}
+
+// ---- Tournaments (Cờ 5 Quân) — see .ai/planning/09-co-5-quan-feature.md ----
+
+export type EntrantDTO = {
+  entrantId: string;
+  name: string;
+  memberId: string | null;
+  seed: number;
+};
+
+export type MatchDTO = {
+  matchId: string;
+  round: "r1" | "r2" | "final";
+  slot: number;
+  aId: string | null;
+  bId: string | null;
+  scoreA: number | null;
+  scoreB: number | null;
+  winnerId: string | null;
+};
+
+export type StandingDTO = {
+  entrantId: string;
+  points: number;
+  gameWins: number;
+  rank: number | null;
+};
+
+export type TournamentDTO = {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  gameType: string;
+  status: "draft" | "seeded" | "r1_done" | "r2_done" | "final" | "completed";
+  entrants: EntrantDTO[];
+  rounds: { r1: MatchDTO[]; r2: MatchDTO[]; final: MatchDTO[] };
+  standings: StandingDTO[] | null;
+  placements: { first: string | null; second: string | null; third: string | null };
+  announceMessageId: string | null;
+};
+
+function toEntrantDTO(e: EntrantDoc): EntrantDTO {
+  return {
+    entrantId: e.entrantId,
+    name: e.name,
+    memberId: e.memberId ? e.memberId.toString() : null,
+    seed: e.seed ?? 0,
+  };
+}
+
+function toMatchDTO(m: MatchDoc): MatchDTO {
+  return {
+    matchId: m.matchId,
+    round: m.round as MatchDTO["round"],
+    slot: m.slot,
+    aId: m.aId ?? null,
+    bId: m.bId ?? null,
+    scoreA: m.scoreA ?? null,
+    scoreB: m.scoreB ?? null,
+    winnerId: m.winnerId ?? null,
+  };
+}
+
+function toStandingDTO(s: StandingDoc): StandingDTO {
+  return {
+    entrantId: s.entrantId,
+    points: s.points ?? 0,
+    gameWins: s.gameWins ?? 0,
+    rank: s.rank ?? null,
+  };
+}
+
+export function toTournamentDTO(doc: HydratedDocument<TournamentDoc>): TournamentDTO {
+  return {
+    id: doc._id.toString(),
+    title: doc.title,
+    description: doc.description ?? null,
+    startAt: doc.startAt.toISOString(),
+    gameType: doc.gameType ?? "co5quan",
+    status: doc.status as TournamentDTO["status"],
+    entrants: (doc.entrants ?? []).map(toEntrantDTO),
+    rounds: {
+      r1: (doc.rounds?.r1 ?? []).map(toMatchDTO),
+      r2: (doc.rounds?.r2 ?? []).map(toMatchDTO),
+      final: (doc.rounds?.final ?? []).map(toMatchDTO),
+    },
+    standings: doc.standings ? doc.standings.map(toStandingDTO) : null,
+    placements: {
+      first: doc.placements?.first ?? null,
+      second: doc.placements?.second ?? null,
+      third: doc.placements?.third ?? null,
+    },
+    announceMessageId: doc.announceMessageId ?? null,
   };
 }
 

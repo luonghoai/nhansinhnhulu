@@ -80,6 +80,46 @@ export const updateArenaTeamSchema = z.object({
   slots: z.array(arenaSlotSchema).optional(),
 });
 
+// ---- Admin: tournaments (Cờ 5 Quân) ----
+export const createTournamentSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  startAt: z.string().datetime(),
+});
+
+export const updateTournamentSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  startAt: z.string().datetime().optional(),
+  status: z
+    .enum(["draft", "seeded", "r1_done", "r2_done", "final", "completed"])
+    .optional(),
+});
+
+const tournamentEntrantSchema = z.object({
+  name: z.string().trim().min(1),
+  memberId: z.string().nullable().optional(),
+});
+
+/** Replace the full entrant list — must be exactly 20 non-empty names. */
+export const putEntrantsSchema = z.object({
+  entrants: z.array(tournamentEntrantSchema).length(20),
+});
+
+export const seedTournamentSchema = z.object({
+  confirmReset: z.boolean().optional(),
+});
+
+export const recordMatchSchema = z.object({
+  scoreA: z.number().int().min(0).max(2),
+  scoreB: z.number().int().min(0).max(2),
+  confirmCascade: z.boolean().optional(),
+});
+
+export const finalizeTournamentSchema = z.object({
+  manualOrder: z.array(z.string()).optional(),
+});
+
 // ---- Admin: join requests ----
 export const approveRequestSchema = z.object({
   slotIndex: z.number().int().min(0).optional(),
