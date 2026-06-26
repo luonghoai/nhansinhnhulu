@@ -124,6 +124,29 @@ export async function announceRaid(raid: RaidAnnouncePayload): Promise<void> {
   await postChannelMessage(channelId, payload);
 }
 
+/**
+ * Sends a free-form admin message to ADMIN_MESSAGE_CHANNEL_ID. Only the explicitly
+ * listed member ids are allowed to ping (`parse: []` blocks @everyone/role pings even
+ * if the content contains them). No-op (logs a warning) when the channel id is unset.
+ */
+export async function sendAdminMessage(
+  content: string,
+  mentionUserIds: string[],
+): Promise<void> {
+  const channelId = process.env.ADMIN_MESSAGE_CHANNEL_ID;
+  if (!channelId) {
+    console.warn("ADMIN_MESSAGE_CHANNEL_ID not set — skipping admin message");
+    throw new Error("ADMIN_MESSAGE_CHANNEL_ID is not set");
+  }
+
+  const payload = {
+    content,
+    allowed_mentions: { parse: [] as string[], users: mentionUserIds },
+  };
+
+  await postChannelMessage(channelId, payload);
+}
+
 /** DMs a member the outcome of their join request (approved/rejected). */
 export async function notifyDecision(payload: DecisionNotifyPayload): Promise<void> {
   const when = formatInTeamTimezone(new Date(payload.startAt));

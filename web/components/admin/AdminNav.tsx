@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/admin/arena", label: "3v3 Arena" },
   { href: "/admin/tournaments", label: "Giải Đấu" },
   { href: "/admin/requests", label: "Join Requests" },
+  { href: "/admin/messages", label: "Message" },
 ];
 
 export function AdminNav() {

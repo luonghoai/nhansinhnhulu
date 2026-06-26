@@ -129,6 +129,15 @@ export const rejectRequestSchema = z.object({
   reason: z.string().optional(),
 });
 
+// ---- Admin: send channel message ----
+/** Discord's hard limit on message content length. */
+export const DISCORD_MESSAGE_MAX = 2000;
+
+export const sendMessageSchema = z.object({
+  content: z.string().trim().min(1).max(DISCORD_MESSAGE_MAX),
+  mentionUserIds: z.array(discordIdSchema).default([]),
+});
+
 // ---- Admin: auth ----
 export const loginSchema = z.object({
   password: z.string().min(1),
