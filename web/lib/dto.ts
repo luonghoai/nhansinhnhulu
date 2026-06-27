@@ -3,7 +3,12 @@ import type { MemberDoc } from "./models/Member";
 import type { DungeonDoc } from "./models/Dungeon";
 import type { RaidDoc, SlotDoc } from "./models/Raid";
 import type { JoinRequestDoc } from "./models/JoinRequest";
-import type { ArenaTeamDoc, ArenaSlotDoc } from "./models/ArenaTeam";
+import type {
+  BattleEventDoc,
+  BattleTeamDoc,
+  MatchupDoc,
+  FinalDoc,
+} from "./models/BattleEvent";
 import type {
   TournamentDoc,
   EntrantDoc,
@@ -111,6 +116,7 @@ export function toRaidDTO(doc: HydratedDocument<RaidDoc>): RaidDTO {
 
 export type RaidWithDungeonDTO = RaidDTO & { dungeon: DungeonDTO };
 
+/** View-model for the public 3v3 card; populated from battle-event teams (see queries.ts). */
 export type ArenaSlotDTO = {
   index: number;
   roleLabel: string | null;
@@ -129,25 +135,85 @@ export type ArenaTeamDTO = {
   isActive: boolean;
 };
 
-function toArenaSlotDTO(slot: ArenaSlotDoc): ArenaSlotDTO {
+// ---- 3v3 Battle events — see .ai/planning/10-3vs3-battle-feature.md ----
+
+export type BattleTeamDTO = {
+  teamId: string;
+  name: string;
+  memberIds: string[];
+  groupPoints: number;
+};
+
+export type MatchupDTO = {
+  matchupId: string;
+  teamAId: string;
+  teamBId: string;
+  result: "a_win" | "draw" | "b_win" | null;
+};
+
+export type FinalDTO = {
+  teamIds: string[];
+  rounds: (string | null)[];
+  roundWins: Record<string, number>;
+};
+
+export type BattleEventDTO = {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  status: "draft" | "open" | "teams_generated" | "group_stage" | "final_stage" | "completed";
+  participants: string[];
+  teams: BattleTeamDTO[];
+  groupMatchups: MatchupDTO[];
+  final: FinalDTO | null;
+  championTeamId: string | null;
+  announceMessageId: string | null;
+};
+
+function toBattleTeamDTO(team: BattleTeamDoc): BattleTeamDTO {
   return {
-    index: slot.index,
-    roleLabel: slot.roleLabel ?? null,
-    memberId: slot.memberId ? slot.memberId.toString() : null,
+    teamId: team.teamId,
+    name: team.name,
+    memberIds: (team.memberIds ?? []).map((id) => id.toString()),
+    groupPoints: team.groupPoints ?? 0,
   };
 }
 
-export function toArenaTeamDTO(doc: HydratedDocument<ArenaTeamDoc>): ArenaTeamDTO {
+function toMatchupDTO(m: MatchupDoc): MatchupDTO {
+  return {
+    matchupId: m.matchupId,
+    teamAId: m.teamAId,
+    teamBId: m.teamBId,
+    result: (m.result ?? null) as MatchupDTO["result"],
+  };
+}
+
+function toFinalDTO(final: FinalDoc): FinalDTO {
+  const roundWins =
+    final.roundWins && typeof final.roundWins === "object"
+      ? (final.roundWins as Record<string, number>)
+      : {};
+  return {
+    teamIds: (final.teamIds ?? []).map((id) => id.toString()),
+    rounds: (final.rounds ?? []).map((r) => r ?? null),
+    roundWins: { ...roundWins },
+  };
+}
+
+export function toBattleEventDTO(doc: HydratedDocument<BattleEventDoc>): BattleEventDTO {
   return {
     id: doc._id.toString(),
-    name: doc.name,
-    tagline: doc.tagline ?? null,
-    rankLabel: doc.rankLabel ?? null,
-    wins: doc.wins ?? 0,
-    losses: doc.losses ?? 0,
-    slots: (doc.slots ?? []).map(toArenaSlotDTO),
-    notes: doc.notes ?? null,
-    isActive: doc.isActive ?? true,
+    title: doc.title,
+    description: doc.description ?? null,
+    startAt: doc.startAt.toISOString(),
+    status: doc.status as BattleEventDTO["status"],
+    participants: (doc.participants ?? []).map((id) => id.toString()),
+    teams: (doc.teams ?? []).map(toBattleTeamDTO),
+    groupMatchups: (doc.groupMatchups ?? []).map(toMatchupDTO),
+    final: doc.final ? toFinalDTO(doc.final) : null,
+    championTeamId: doc.championTeamId ?? null,
+    announceMessageId: doc.announceMessageId ?? null,
   };
 }
 

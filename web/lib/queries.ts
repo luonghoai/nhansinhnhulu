@@ -1,6 +1,5 @@
 import { connectToDatabase } from "./db";
 import {
-  toArenaTeamDTO,
   toDungeonDTO,
   toMemberDTO,
   toRaidDTO,
@@ -14,7 +13,7 @@ import {
 import { Dungeon } from "./models/Dungeon";
 import { Member } from "./models/Member";
 import { Raid } from "./models/Raid";
-import { ArenaTeam } from "./models/ArenaTeam";
+import { BattleEvent } from "./models/BattleEvent";
 import { Tournament } from "./models/Tournament";
 import { getWeekRangeUtc } from "./time";
 
@@ -100,18 +99,22 @@ export type ArenaTeamWithMembers = {
   members: Record<string, MemberDTO>;
 };
 
-/** Active 3v3 arena squads with their rostered members resolved, for the public page. */
+/**
+ * Teams of the most recent 3v3 battle event that has teams generated, mapped to the
+ * arena card view-model for the public page. Group wins/losses are derived from the
+ * recorded group matchups; the champion (if any) gets the honour seal.
+ */
 export async function getArenaTeams(): Promise<ArenaTeamWithMembers[]> {
   await connectToDatabase();
 
-  const teams = await ArenaTeam.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 });
+  const event = await BattleEvent.findOne({ "teams.0": { $exists: true } }).sort({
+    startAt: -1,
+    createdAt: -1,
+  });
+  if (!event) return [];
 
   const memberIds = [
-    ...new Set(
-      teams.flatMap((team) =>
-        team.slots.filter((s) => s.memberId).map((s) => s.memberId!.toString())
-      )
-    ),
+    ...new Set(event.teams.flatMap((team) => team.memberIds.map((m) => m.toString()))),
   ];
 
   const members = await Member.find({ _id: { $in: memberIds } });
@@ -120,14 +123,46 @@ export async function getArenaTeams(): Promise<ArenaTeamWithMembers[]> {
     membersById[member._id.toString()] = toMemberDTO(member);
   }
 
-  return teams.map((team) => ({
-    team: toArenaTeamDTO(team),
-    members: Object.fromEntries(
-      team.slots
-        .filter((s) => s.memberId)
-        .map((s) => [s.memberId!.toString(), membersById[s.memberId!.toString()]])
-    ),
-  }));
+  return event.teams.map((team) => {
+    let wins = 0;
+    let losses = 0;
+    for (const m of event.groupMatchups) {
+      if (m.result == null) continue;
+      if (m.teamAId === team.teamId) {
+        if (m.result === "a_win") wins++;
+        else if (m.result === "b_win") losses++;
+      } else if (m.teamBId === team.teamId) {
+        if (m.result === "b_win") wins++;
+        else if (m.result === "a_win") losses++;
+      }
+    }
+
+    const teamMemberIds = team.memberIds.map((m) => m.toString());
+    const arenaTeam: ArenaTeamDTO = {
+      id: team.teamId,
+      name: team.name,
+      tagline: null,
+      rankLabel: event.championTeamId === team.teamId ? "Vô địch" : null,
+      wins,
+      losses,
+      slots: teamMemberIds.map((memberId, index) => ({
+        index,
+        roleLabel: null,
+        memberId,
+      })),
+      notes: null,
+      isActive: true,
+    };
+
+    return {
+      team: arenaTeam,
+      members: Object.fromEntries(
+        teamMemberIds
+          .filter((id) => membersById[id])
+          .map((id) => [id, membersById[id]])
+      ),
+    };
+  });
 }
 
 export type FeaturedTournament = {

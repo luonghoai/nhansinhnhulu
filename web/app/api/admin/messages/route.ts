@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Member } from "@/lib/models/Member";
 import { sendMessageSchema } from "@/lib/validators";
-import { sendAdminMessage } from "@/lib/discordClient";
+import { DiscordApiError, sendAdminMessage } from "@/lib/discordClient";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -38,6 +38,15 @@ export async function POST(request: Request) {
     await sendAdminMessage(content, allowedMentionIds);
   } catch (err) {
     console.error("Failed to send admin message", err);
+    if (err instanceof DiscordApiError && err.status === 403) {
+      return NextResponse.json(
+        {
+          error:
+            "Bot lacks permission to post in the configured channel. Grant it View Channel + Send Messages on ADMIN_MESSAGE_CHANNEL_ID.",
+        },
+        { status: 502 },
+      );
+    }
     return NextResponse.json({ error: "Failed to send message to Discord" }, { status: 502 });
   }
 

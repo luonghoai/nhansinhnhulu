@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin/members", label: "Members" },
   { href: "/admin/dungeons", label: "Dungeons" },
   { href: "/admin/raids", label: "Raids" },
-  { href: "/admin/arena", label: "3v3 Arena" },
+  { href: "/admin/battles", label: "3v3 Battle" },
   { href: "/admin/tournaments", label: "Giải Đấu" },
   { href: "/admin/requests", label: "Join Requests" },
   { href: "/admin/messages", label: "Message" },

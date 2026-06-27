@@ -3,27 +3,27 @@ import { connectToDatabase } from "@/lib/db";
 import { Member } from "@/lib/models/Member";
 import { Dungeon } from "@/lib/models/Dungeon";
 import { Raid } from "@/lib/models/Raid";
-import { ArenaTeam } from "@/lib/models/ArenaTeam";
+import { BattleEvent } from "@/lib/models/BattleEvent";
 import { JoinRequest } from "@/lib/models/JoinRequest";
 
 const SECTIONS = [
   { href: "/admin/members", label: "Members", countKey: "members" as const },
   { href: "/admin/dungeons", label: "Dungeons", countKey: "dungeons" as const },
   { href: "/admin/raids", label: "Raids", countKey: "raids" as const },
-  { href: "/admin/arena", label: "3v3 Teams", countKey: "arenaTeams" as const },
+  { href: "/admin/battles", label: "3v3 Battle", countKey: "battleEvents" as const },
   { href: "/admin/requests", label: "Pending Requests", countKey: "pendingRequests" as const },
 ];
 
 async function getCounts() {
   await connectToDatabase();
-  const [members, dungeons, raids, arenaTeams, pendingRequests] = await Promise.all([
+  const [members, dungeons, raids, battleEvents, pendingRequests] = await Promise.all([
     Member.countDocuments({ isActive: true }),
     Dungeon.countDocuments({ isActive: true }),
     Raid.countDocuments({}),
-    ArenaTeam.countDocuments({ isActive: true }),
+    BattleEvent.countDocuments({}),
     JoinRequest.countDocuments({ status: "pending" }),
   ]);
-  return { members, dungeons, raids, arenaTeams, pendingRequests };
+  return { members, dungeons, raids, battleEvents, pendingRequests };
 }
 
 export default async function AdminDashboardPage() {

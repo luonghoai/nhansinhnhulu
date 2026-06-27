@@ -54,30 +54,45 @@ export const updateRaidSchema = z.object({
   status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
 });
 
-// ---- Admin: 3v3 arena teams ----
-export const arenaSlotSchema = z.object({
-  index: z.number().int().min(0).max(2),
-  roleLabel: z.string().nullable().optional(),
-  memberId: z.string().nullable().optional(),
+// ---- Admin: 3v3 battle events ----
+export const createBattleSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  startAt: z.string().datetime(),
 });
 
-export const createArenaTeamSchema = z.object({
-  name: z.string().min(1),
-  tagline: z.string().nullable().optional(),
-  rankLabel: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  slots: z.array(arenaSlotSchema).optional(),
+export const updateBattleSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  startAt: z.string().datetime().optional(),
+  status: z
+    .enum(["draft", "open", "teams_generated", "group_stage", "final_stage", "completed"])
+    .optional(),
 });
 
-export const updateArenaTeamSchema = z.object({
-  name: z.string().min(1).optional(),
-  tagline: z.string().nullable().optional(),
-  rankLabel: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  wins: z.number().int().min(0).optional(),
-  losses: z.number().int().min(0).optional(),
-  isActive: z.boolean().optional(),
-  slots: z.array(arenaSlotSchema).optional(),
+export const addParticipantSchema = z.object({
+  memberId: z.string(),
+});
+
+export const generateTeamsSchema = z.object({
+  confirmReset: z.boolean().optional(),
+});
+
+export const renameBattleTeamSchema = z.object({
+  name: z.string().trim().min(1),
+});
+
+export const recordMatchupSchema = z.object({
+  result: z.enum(["a_win", "draw", "b_win"]).nullable(),
+  confirmReset: z.boolean().optional(),
+});
+
+export const advanceFinalSchema = z.object({
+  teamIds: z.array(z.string()).length(2),
+});
+
+export const recordFinalRoundSchema = z.object({
+  winnerTeamId: z.string().nullable(),
 });
 
 // ---- Admin: tournaments (Cờ 5 Quân) ----
