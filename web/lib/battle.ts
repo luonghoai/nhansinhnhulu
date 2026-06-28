@@ -56,19 +56,50 @@ export function isGeneratablePool(count: number): boolean {
   return count >= BATTLE_TEAM_SIZE * 2 && count % BATTLE_TEAM_SIZE === 0;
 }
 
+/** A pool entry tagged with whether the member is a Tố Vấn (healer/support). */
+export type PoolMember = { memberId: string; isTovan: boolean };
+
+/** Number of Tố Vấn in the pool. */
+export function tovanCount(pool: readonly PoolMember[]): number {
+  return pool.reduce((n, p) => n + (p.isTovan ? 1 : 0), 0);
+}
+
 /**
- * Randomly forms teams from a participant pool: shuffle, slice into groups of
- * {@link BATTLE_TEAM_SIZE}, naming them `Team 1..N`. Caller must validate the
- * pool size first ({@link isGeneratablePool}).
+ * Exactly one Tố Vấn per team is achievable iff the pool is generatable AND it
+ * holds exactly `pool / BATTLE_TEAM_SIZE` Tố Vấn (one per team, no extras).
  */
-export function generateTeams(participantIds: readonly string[]): BuiltTeam[] {
-  const shuffled = shuffle(participantIds);
+export function isBalanceable(pool: readonly PoolMember[]): boolean {
+  return (
+    isGeneratablePool(pool.length) &&
+    tovanCount(pool) === pool.length / BATTLE_TEAM_SIZE
+  );
+}
+
+/**
+ * Randomly forms teams of `[1 Tố Vấn + 2 others]`, naming them `Team 1..N`.
+ * Both buckets are shuffled before slicing and each team's three members are
+ * shuffled for display order (so the Tố Vấn isn't always first).
+ *
+ * Precondition: {@link isBalanceable}. Throws on a Tố Vấn-count mismatch — the
+ * caller (route) is expected to validate and return 422 before reaching here.
+ */
+export function generateBalancedTeams(pool: readonly PoolMember[]): BuiltTeam[] {
+  const teamCount = pool.length / BATTLE_TEAM_SIZE;
+  const tovan = shuffle(pool.filter((p) => p.isTovan).map((p) => p.memberId));
+  const others = shuffle(pool.filter((p) => !p.isTovan).map((p) => p.memberId));
+  if (tovan.length !== teamCount) {
+    throw new Error(
+      `generateBalancedTeams: expected ${teamCount} Tố Vấn, got ${tovan.length}`
+    );
+  }
+
   const teams: BuiltTeam[] = [];
-  for (let i = 0; i < shuffled.length; i += BATTLE_TEAM_SIZE) {
+  for (let i = 0; i < teamCount; i++) {
+    const memberIds = shuffle([tovan[i], others[2 * i], others[2 * i + 1]]);
     teams.push({
       teamId: newId(),
-      name: `Team ${teams.length + 1}`,
-      memberIds: shuffled.slice(i, i + BATTLE_TEAM_SIZE),
+      name: `Team ${i + 1}`,
+      memberIds,
       groupPoints: 0,
     });
   }

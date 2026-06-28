@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { BattleEvent } from "@/lib/models/BattleEvent";
+import { Member } from "@/lib/models/Member";
 import { toBattleEventDTO } from "@/lib/dto";
 import { generateTeamsSchema } from "@/lib/validators";
 import { BATTLE_TEAM_SIZE } from "@/lib/models/BattleEvent";
-import { buildGroupMatchups, generateTeams, isGeneratablePool } from "@/lib/battle";
+import { isTovanIcon } from "@/lib/classes";
+import {
+  buildGroupMatchups,
+  generateBalancedTeams,
+  isGeneratablePool,
+  tovanCount,
+  type PoolMember,
+} from "@/lib/battle";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -32,6 +40,32 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  // Build a class-tagged pool (Tố Vấn ↔ classIcon "ToVan"). Members missing /
+  // soft-deleted between pool edit and generate read as non-Tố Vấn.
+  const memberDocs = await Member.find({ _id: { $in: event.participants } }).select(
+    "_id classIcon"
+  );
+  const tovanByMember = new Map<string, boolean>(
+    memberDocs.map((m) => [m._id.toString(), isTovanIcon(m.classIcon)])
+  );
+  const pool: PoolMember[] = event.participants.map((p) => {
+    const memberId = p.toString();
+    return { memberId, isTovan: tovanByMember.get(memberId) ?? false };
+  });
+
+  // Exactly one Tố Vấn per team: require exactly `teamCount` Tố Vấn in the pool.
+  const teamCount = pool.length / BATTLE_TEAM_SIZE;
+  const tovan = tovanCount(pool);
+  if (tovan !== teamCount) {
+    return NextResponse.json(
+      {
+        error: tovan < teamCount ? "not-enough-tovan" : "too-many-tovan",
+        message: `Cần đúng ${teamCount} Tố Vấn cho ${teamCount} đội (hiện có ${tovan}).`,
+      },
+      { status: 422 }
+    );
+  }
+
   // Regenerating wipes all recorded stage data; require explicit confirmation.
   const hasResults =
     event.groupMatchups.some((m) => m.result !== null) || event.final !== null;
@@ -42,7 +76,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const teams = generateTeams(event.participants.map((p) => p.toString()));
+  const teams = generateBalancedTeams(pool);
   const groupMatchups = buildGroupMatchups(teams);
 
   const updated = await BattleEvent.findByIdAndUpdate(

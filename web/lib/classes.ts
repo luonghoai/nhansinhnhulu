@@ -27,6 +27,19 @@ export const NSNL_CLASSES: readonly NsnlClass[] = [
   { name: "Tố Vấn", iconKey: "ToVan" },
 ];
 
+/**
+ * Asset key of the Tố Vấn (healer/support) class — the canonical source of truth
+ * used by 3v3 team balancing (exactly one Tố Vấn per team; see
+ * `.ai/planning/11-3vs3-balanced-teams.md`). Matched against `member.classIcon`,
+ * never the free-text `class` name.
+ */
+export const TOVAN_ICON_KEY = "ToVan";
+
+/** True when a member's `classIcon` is Tố Vấn. */
+export function isTovanIcon(classIcon?: string | null): boolean {
+  return classIcon === TOVAN_ICON_KEY;
+}
+
 /** Look up the canonical icon key for a class name, or `null` if unknown. */
 export function iconKeyForClass(className?: string | null): string | null {
   if (!className) return null;

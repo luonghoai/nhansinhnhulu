@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { Crown, Trophy, X } from "lucide-react";
 import { classIconSrc } from "@/lib/assets";
+import { isTovanIcon } from "@/lib/classes";
 import type { BattleEventDTO, BattleTeamDTO, MemberDTO } from "@/lib/dto";
 import { MemberPicker } from "./MemberPicker";
 
@@ -180,6 +181,13 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
   const remainder = event.participants.length % TEAM_SIZE;
   const teamCount = Math.floor(event.participants.length / TEAM_SIZE);
 
+  // Each team must field exactly one Tố Vấn → pool needs exactly `teamCount` of them.
+  const tovanCount = event.participants.reduce(
+    (n, pid) => n + (isTovanIcon(memberById.get(pid)?.classIcon) ? 1 : 0),
+    0
+  );
+  const tovanBalanced = poolValid && tovanCount === teamCount;
+
   const teamById = new Map(event.teams.map((t) => [t.teamId, t]));
   const standings = [...event.teams].sort((a, b) => b.groupPoints - a.groupPoints);
   const groupComplete =
@@ -274,6 +282,17 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
               )
             </span>
           </p>
+          {poolValid && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                tovanBalanced
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              Tố Vấn: {tovanCount} / {teamCount}
+            </span>
+          )}
         </div>
 
         <div className="mb-3 flex flex-wrap gap-2">
@@ -318,11 +337,16 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
           <p className="text-sm font-medium text-zinc-700">Đội hình</p>
           <button
             type="button"
-            disabled={busy || !poolValid}
+            disabled={busy || !tovanBalanced}
+            title={
+              poolValid && !tovanBalanced
+                ? `Cần đúng ${teamCount} Tố Vấn cho ${teamCount} đội (hiện có ${tovanCount}).`
+                : undefined
+            }
             onClick={generateTeams}
             className="cursor-pointer rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {event.teams.length > 0 ? "Chia lại đội" : "Chia đội ngẫu nhiên"}
+            {event.teams.length > 0 ? "Chia lại đội" : "Chia đội (1 Tố Vấn/đội)"}
           </button>
         </div>
         {event.teams.length === 0 ? (
