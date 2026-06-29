@@ -87,9 +87,13 @@ winnerTeamId: string | null,        // derived (clinchWins(bestOf))
 - Create form: **format** `<select>`.
 - Pool panel: for `double_elim`, show a power-of-two team-count chip ("Cần 4/8/16 đội") beside the
   Tố Vấn tally; **Generate** disabled unless both the Tố Vấn count and bracket size are valid.
-- `BracketSection` (when `event.bracket`): three columns (Nhánh thắng / Nhánh thua / Chung kết
-  tổng), each match shows both teams + win tallies + a per-game `ResultButton` row (reusing the
-  final's click pattern). Champion banner reuses the `Trophy` treatment. Group-stage + `FinalSection`
+- `BracketSection` (when `event.bracket`): champion banner + a **connected tree** rendered by
+  `web/components/admin/BracketTree.tsx`. The Winners band flows left→right into the Grand Final;
+  the Losers band sits below. **SVG connector lines** follow the real `aSource`/`bSource` graph —
+  solid zinc for winner edges, dashed amber for loser/drop edges — measured from the live node
+  anchors (`useLayoutEffect` + `ResizeObserver`) so they stay attached on resize. Each node keeps
+  inline per-game `ResultButton` rows (shared from `BracketTree.tsx`). Layout is driven by the
+  per-match `round`/`slot` coordinates set in `buildDoubleElimBracket`. Group-stage + `FinalSection`
   render only for `round_robin`.
 
 ## 6. Out of scope (v1)

@@ -217,6 +217,10 @@ export type BracketMatch = {
   bracket: "WB" | "LB" | "GF";
   label: string;
   order: number;
+  /** 0-based column (round) within this match's bracket side — for tree layout. */
+  round: number;
+  /** 0-based row within the round — for tree layout. */
+  slot: number;
   bestOf: number;
   aSource: MatchSource;
   bSource: MatchSource;
@@ -252,6 +256,8 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
   const mk = (
     bracket: BracketMatch["bracket"],
     label: string,
+    roundIdx: number,
+    slotIdx: number,
     bestOf: number,
     aSource: MatchSource,
     bSource: MatchSource
@@ -261,6 +267,8 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
       bracket,
       label,
       order: order++,
+      round: roundIdx,
+      slot: slotIdx,
       bestOf,
       aSource,
       bSource,
@@ -286,7 +294,7 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
         r === 0
           ? ([{ kind: "seed", teamId: seeds[2 * i] }, { kind: "seed", teamId: seeds[2 * i + 1] }] as const)
           : ([winnerOf(wbRounds[r - 1][2 * i]), winnerOf(wbRounds[r - 1][2 * i + 1])] as const);
-      round.push(mk("WB", label, BRACKET_BEST_OF, a, b));
+      round.push(mk("WB", label, r, i, BRACKET_BEST_OF, a, b));
     }
     wbRounds.push(round);
   }
@@ -302,7 +310,9 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
     const minorLabel = `Nhánh thua · Vòng ${lbNo}`;
     const minorWinners: BracketMatch[] = [];
     for (let i = 0; i < pending.length / 2; i++) {
-      minorWinners.push(mk("LB", minorLabel, BRACKET_BEST_OF, pending[2 * i], pending[2 * i + 1]));
+      minorWinners.push(
+        mk("LB", minorLabel, lbNo - 1, i, BRACKET_BEST_OF, pending[2 * i], pending[2 * i + 1])
+      );
     }
     // Major round: minor winners vs this WB round's dropdowns.
     lbNo += 1;
@@ -311,7 +321,7 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
     const majorWinners: BracketMatch[] = [];
     for (let i = 0; i < minorWinners.length; i++) {
       majorWinners.push(
-        mk("LB", majorLabel, BRACKET_BEST_OF, winnerOf(minorWinners[i]), loserOf(wbRounds[r][i]))
+        mk("LB", majorLabel, lbNo - 1, i, BRACKET_BEST_OF, winnerOf(minorWinners[i]), loserOf(wbRounds[r][i]))
       );
     }
     pending = majorWinners.map((m) => winnerOf(m));
@@ -320,7 +330,7 @@ export function buildDoubleElimBracket(teams: readonly BuiltTeam[]): BracketMatc
   const lbFinal = lastLbMatch!; // k ≥ 2 guarantees at least one LB round ran.
 
   // ---- Grand Final (Bo5): WB champion vs LB champion. ----
-  mk("GF", "Chung kết tổng", GRAND_FINAL_BEST_OF, winnerOf(wbFinal), winnerOf(lbFinal));
+  mk("GF", "Chung kết tổng", 0, 0, GRAND_FINAL_BEST_OF, winnerOf(wbFinal), winnerOf(lbFinal));
 
   return matches;
 }

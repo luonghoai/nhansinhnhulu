@@ -51,6 +51,8 @@ export async function PATCH(request: Request, { params }: Params) {
     bracket: m.bracket as BracketMatch["bracket"],
     label: m.label,
     order: m.order,
+    round: m.round ?? 0,
+    slot: m.slot ?? 0,
     bestOf: m.bestOf,
     aSource: m.aSource as MatchSource,
     bSource: m.bSource as MatchSource,

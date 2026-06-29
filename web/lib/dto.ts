@@ -159,12 +159,21 @@ export type FinalDTO = {
   roundWins: Record<string, number>;
 };
 
+export type MatchSourceDTO =
+  | { kind: "seed"; teamId: string }
+  | { kind: "winner"; matchId: string }
+  | { kind: "loser"; matchId: string };
+
 export type BracketMatchDTO = {
   matchId: string;
   bracket: "WB" | "LB" | "GF";
   label: string;
   order: number;
+  round: number;
+  slot: number;
   bestOf: number;
+  aSource: MatchSourceDTO;
+  bSource: MatchSourceDTO;
   aTeamId: string | null;
   bTeamId: string | null;
   rounds: (string | null)[];
@@ -234,7 +243,11 @@ function toBracketMatchDTO(m: BracketMatchDoc): BracketMatchDTO {
     bracket: m.bracket as BracketMatchDTO["bracket"],
     label: m.label,
     order: m.order,
+    round: m.round ?? 0,
+    slot: m.slot ?? 0,
     bestOf: m.bestOf,
+    aSource: m.aSource as MatchSourceDTO,
+    bSource: m.bSource as MatchSourceDTO,
     aTeamId: m.aTeamId ?? null,
     bTeamId: m.bTeamId ?? null,
     rounds: (m.rounds ?? []).map((r) => (r as string | null) ?? null),

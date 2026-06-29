@@ -6,8 +6,9 @@ import Image from "next/image";
 import { Crown, Trophy, X } from "lucide-react";
 import { classIconSrc } from "@/lib/assets";
 import { isTovanIcon } from "@/lib/classes";
-import type { BattleEventDTO, BattleTeamDTO, BracketMatchDTO, MemberDTO } from "@/lib/dto";
+import type { BattleEventDTO, BattleTeamDTO, MemberDTO } from "@/lib/dto";
 import { MemberPicker } from "./MemberPicker";
+import { BracketTree, ResultButton } from "./BracketTree";
 
 interface BattlePanelProps {
   initialEvents: BattleEventDTO[];
@@ -568,12 +569,6 @@ function FinalSection({
   );
 }
 
-const BRACKET_GROUPS: { side: BracketMatchDTO["bracket"]; title: string }[] = [
-  { side: "WB", title: "Nhánh thắng" },
-  { side: "LB", title: "Nhánh thua" },
-  { side: "GF", title: "Chung kết tổng" },
-];
-
 function BracketSection({
   event,
   teamById,
@@ -587,9 +582,7 @@ function BracketSection({
   api: DetailProps["api"];
   base: string;
 }) {
-  const matches = [...event.bracket!.matches].sort((a, b) => a.order - b.order);
   const champion = event.championTeamId ? teamById.get(event.championTeamId) : null;
-  const teamName = (tid: string | null) => (tid ? (teamById.get(tid)?.name ?? "?") : "—");
 
   return (
     <section className="rounded-xl border border-zinc-200 bg-white p-4">
@@ -602,126 +595,15 @@ function BracketSection({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {BRACKET_GROUPS.map(({ side, title }) => {
-          const group = matches.filter((m) => m.bracket === side);
-          if (group.length === 0) return null;
-          return (
-            <div key={side} className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</p>
-              {group.map((m) => (
-                <BracketMatchCard
-                  key={m.matchId}
-                  match={m}
-                  teamName={teamName}
-                  busy={busy}
-                  onRecord={(index, winnerTeamId) =>
-                    api(`${base}/bracket/matches/${m.matchId}/games/${index}`, "PATCH", {
-                      winnerTeamId,
-                    })
-                  }
-                />
-              ))}
-            </div>
-          );
-        })}
-      </div>
+      <BracketTree
+        event={event}
+        teamById={teamById}
+        busy={busy}
+        onRecord={(matchId, index, winnerTeamId) =>
+          api(`${base}/bracket/matches/${matchId}/games/${index}`, "PATCH", { winnerTeamId })
+        }
+      />
     </section>
-  );
-}
-
-function BracketMatchCard({
-  match,
-  teamName,
-  busy,
-  onRecord,
-}: {
-  match: BracketMatchDTO;
-  teamName: (tid: string | null) => string;
-  busy: boolean;
-  onRecord: (index: number, winnerTeamId: string | null) => void;
-}) {
-  const wins = (tid: string | null) =>
-    tid ? match.rounds.filter((w) => w === tid).length : 0;
-  const ready = match.aTeamId != null && match.bTeamId != null;
-
-  return (
-    <div className="rounded-md border border-zinc-200 p-3">
-      <div className="mb-2 flex items-center justify-between text-xs text-zinc-400">
-        <span>{match.label}</span>
-        <span>Bo{match.bestOf}</span>
-      </div>
-      <div className="mb-2 flex items-center justify-between gap-2 text-sm">
-        <span className="flex items-center gap-1.5 truncate">
-          {match.winnerTeamId === match.aTeamId && match.winnerTeamId && (
-            <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
-          )}
-          <span className="truncate font-medium">{teamName(match.aTeamId)}</span>
-          <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold tabular-nums">
-            {wins(match.aTeamId)}
-          </span>
-        </span>
-        <span className="flex items-center gap-1.5 truncate">
-          <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold tabular-nums">
-            {wins(match.bTeamId)}
-          </span>
-          <span className="truncate font-medium">{teamName(match.bTeamId)}</span>
-          {match.winnerTeamId === match.bTeamId && match.winnerTeamId && (
-            <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
-          )}
-        </span>
-      </div>
-
-      {ready ? (
-        <div className="flex flex-col gap-1">
-          {match.rounds.map((winner, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs">
-              <span className="w-12 shrink-0 text-zinc-500">Hiệp {i + 1}</span>
-              <div className="flex gap-1">
-                {[match.aTeamId, match.bTeamId].map((tid) => (
-                  <ResultButton
-                    key={tid}
-                    active={winner === tid}
-                    label={teamName(tid)}
-                    disabled={busy}
-                    onClick={() => onRecord(i, winner === tid ? null : tid)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-zinc-400">Chờ đội từ vòng trước.</p>
-      )}
-    </div>
-  );
-}
-
-function ResultButton({
-  active,
-  label,
-  onClick,
-  disabled,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        active
-          ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-300 text-zinc-600 hover:bg-zinc-100"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

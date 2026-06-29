@@ -75,6 +75,8 @@ const BracketMatchSchema = new Schema(
     bracket: { type: String, enum: BRACKET_SIDES, required: true },
     label: { type: String, required: true },
     order: { type: Number, required: true },
+    round: { type: Number, default: 0 },
+    slot: { type: Number, default: 0 },
     bestOf: { type: Number, required: true },
     aSource: { type: Schema.Types.Mixed, required: true },
     bSource: { type: Schema.Types.Mixed, required: true },
