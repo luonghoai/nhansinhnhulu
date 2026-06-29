@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     title: parsed.data.title,
     description: parsed.data.description ?? null,
     startAt: new Date(parsed.data.startAt),
+    format: parsed.data.format ?? "round_robin",
   });
 
   return NextResponse.json({ event: toBattleEventDTO(event) }, { status: 201 });

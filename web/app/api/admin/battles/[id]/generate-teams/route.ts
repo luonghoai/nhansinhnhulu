@@ -5,11 +5,14 @@ import { Member } from "@/lib/models/Member";
 import { toBattleEventDTO } from "@/lib/dto";
 import { generateTeamsSchema } from "@/lib/validators";
 import { BATTLE_TEAM_SIZE } from "@/lib/models/BattleEvent";
-import { isTovanIcon } from "@/lib/classes";
+import { isTovanIcon, rangeForClassIcon } from "@/lib/classes";
 import {
+  buildDoubleElimBracket,
   buildGroupMatchups,
+  deriveBracket,
   generateBalancedTeams,
   isGeneratablePool,
+  isPowerOfTwoTeamCount,
   tovanCount,
   type PoolMember,
 } from "@/lib/battle";
@@ -40,17 +43,23 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  // Build a class-tagged pool (Tố Vấn ↔ classIcon "ToVan"). Members missing /
-  // soft-deleted between pool edit and generate read as non-Tố Vấn.
+  // Build a class-tagged pool (Tố Vấn ↔ classIcon "ToVan", plus long/short range).
+  // Members missing / soft-deleted between pool edit and generate read as non-Tố Vấn
+  // with an unknown ("flex") range.
   const memberDocs = await Member.find({ _id: { $in: event.participants } }).select(
     "_id classIcon"
   );
-  const tovanByMember = new Map<string, boolean>(
-    memberDocs.map((m) => [m._id.toString(), isTovanIcon(m.classIcon)])
+  const classByMember = new Map<string, string | null | undefined>(
+    memberDocs.map((m) => [m._id.toString(), m.classIcon])
   );
   const pool: PoolMember[] = event.participants.map((p) => {
     const memberId = p.toString();
-    return { memberId, isTovan: tovanByMember.get(memberId) ?? false };
+    const classIcon = classByMember.get(memberId);
+    return {
+      memberId,
+      isTovan: isTovanIcon(classIcon),
+      range: rangeForClassIcon(classIcon),
+    };
   });
 
   // Exactly one Tố Vấn per team: require exactly `teamCount` Tố Vấn in the pool.
@@ -66,9 +75,23 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  // Double-elim needs a power-of-two team count (4 / 8 / 16 → 12 / 24 / 48 người).
+  const isDoubleElim = event.format === "double_elim";
+  if (isDoubleElim && !isPowerOfTwoTeamCount(teamCount)) {
+    return NextResponse.json(
+      {
+        error: "invalid-bracket-size",
+        message: `Nhánh loại trực tiếp cần 4/8/16 đội (hiện có ${teamCount}).`,
+      },
+      { status: 422 }
+    );
+  }
+
   // Regenerating wipes all recorded stage data; require explicit confirmation.
   const hasResults =
-    event.groupMatchups.some((m) => m.result !== null) || event.final !== null;
+    event.groupMatchups.some((m) => m.result !== null) ||
+    event.final !== null ||
+    (event.bracket?.matches ?? []).some((m) => (m.rounds ?? []).some((r) => r !== null));
   if (hasResults && !parsed.data.confirmReset) {
     return NextResponse.json(
       { error: "needs-confirm", message: "Tạo lại đội sẽ xóa toàn bộ kết quả đã ghi." },
@@ -77,15 +100,20 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const teams = generateBalancedTeams(pool);
-  const groupMatchups = buildGroupMatchups(teams);
+  // Derive once so the first-round seed participants are resolved (aTeamId/bTeamId)
+  // right away — otherwise every match would render as "waiting for a team".
+  const bracket = isDoubleElim
+    ? { matches: deriveBracket(buildDoubleElimBracket(teams)).matches }
+    : null;
 
   const updated = await BattleEvent.findByIdAndUpdate(
     id,
     {
       $set: {
         teams,
-        groupMatchups,
+        groupMatchups: isDoubleElim ? [] : buildGroupMatchups(teams),
         final: null,
+        bracket,
         championTeamId: null,
         status: "teams_generated",
       },

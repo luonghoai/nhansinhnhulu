@@ -59,14 +59,24 @@ export const createBattleSchema = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional(),
   startAt: z.string().datetime(),
+  format: z.enum(["round_robin", "double_elim"]).optional(),
 });
 
 export const updateBattleSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   startAt: z.string().datetime().optional(),
+  format: z.enum(["round_robin", "double_elim"]).optional(),
   status: z
-    .enum(["draft", "open", "teams_generated", "group_stage", "final_stage", "completed"])
+    .enum([
+      "draft",
+      "open",
+      "teams_generated",
+      "group_stage",
+      "final_stage",
+      "bracket_stage",
+      "completed",
+    ])
     .optional(),
 });
 
@@ -92,6 +102,10 @@ export const advanceFinalSchema = z.object({
 });
 
 export const recordFinalRoundSchema = z.object({
+  winnerTeamId: z.string().nullable(),
+});
+
+export const recordBracketGameSchema = z.object({
   winnerTeamId: z.string().nullable(),
 });
 

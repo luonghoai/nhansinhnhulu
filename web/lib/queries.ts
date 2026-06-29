@@ -126,14 +126,25 @@ export async function getArenaTeams(): Promise<ArenaTeamWithMembers[]> {
   return event.teams.map((team) => {
     let wins = 0;
     let losses = 0;
-    for (const m of event.groupMatchups) {
-      if (m.result == null) continue;
-      if (m.teamAId === team.teamId) {
-        if (m.result === "a_win") wins++;
-        else if (m.result === "b_win") losses++;
-      } else if (m.teamBId === team.teamId) {
-        if (m.result === "b_win") wins++;
-        else if (m.result === "a_win") losses++;
+    if (event.format === "double_elim") {
+      // Series-level record across decided bracket matches the team played.
+      for (const m of event.bracket?.matches ?? []) {
+        if (!m.winnerTeamId) continue;
+        if (m.aTeamId === team.teamId || m.bTeamId === team.teamId) {
+          if (m.winnerTeamId === team.teamId) wins++;
+          else losses++;
+        }
+      }
+    } else {
+      for (const m of event.groupMatchups) {
+        if (m.result == null) continue;
+        if (m.teamAId === team.teamId) {
+          if (m.result === "a_win") wins++;
+          else if (m.result === "b_win") losses++;
+        } else if (m.teamBId === team.teamId) {
+          if (m.result === "b_win") wins++;
+          else if (m.result === "a_win") losses++;
+        }
       }
     }
 

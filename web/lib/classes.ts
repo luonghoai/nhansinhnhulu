@@ -15,16 +15,17 @@ export type NsnlClass = {
   name: string;
   /** Asset key stored on `member.classIcon`, e.g. `"CuuLinh"` → `/assets/classes/CuuLinh.webp`. */
   iconKey: string;
+  range?: "long" | "short"; // optional range classification for future use
 };
 
 export const NSNL_CLASSES: readonly NsnlClass[] = [
-  { name: "Cửu Linh", iconKey: "CuuLinh" },
-  { name: "Huyết Hà", iconKey: "HuyetHa" },
-  { name: "Long Ngâm", iconKey: "LongNgam" },
-  { name: "Thần Tương", iconKey: "ThanTuong" },
-  { name: "Thiết Y", iconKey: "ThietY" },
-  { name: "Toái Mộng", iconKey: "ToaiMong" },
-  { name: "Tố Vấn", iconKey: "ToVan" },
+  { name: "Cửu Linh", iconKey: "CuuLinh", range: "long" },
+  { name: "Huyết Hà", iconKey: "HuyetHa", range: "short" },
+  { name: "Long Ngâm", iconKey: "LongNgam", range: "short" },
+  { name: "Thần Tương", iconKey: "ThanTuong", range: "long" },
+  { name: "Thiết Y", iconKey: "ThietY", range: "short" },
+  { name: "Toái Mộng", iconKey: "ToaiMong", range: "short" },
+  { name: "Tố Vấn", iconKey: "ToVan", range: "long" },
 ];
 
 /**
@@ -45,4 +46,16 @@ export function iconKeyForClass(className?: string | null): string | null {
   if (!className) return null;
   const match = NSNL_CLASSES.find((c) => c.name === className);
   return match?.iconKey ?? null;
+}
+
+/**
+ * Range classification (`"long" | "short"`) for a class icon key, or `null` when
+ * the key is missing/unknown. Used by 3v3 team balancing to pair one long-range
+ * and one short-range class alongside the Tố Vấn (see `.ai/planning/12-3v3-double-elim.md`).
+ * Matched against `member.classIcon`, never the free-text `class` name.
+ */
+export function rangeForClassIcon(classIcon?: string | null): "long" | "short" | null {
+  if (!classIcon) return null;
+  const match = NSNL_CLASSES.find((c) => c.iconKey === classIcon);
+  return match?.range ?? null;
 }

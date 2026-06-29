@@ -8,6 +8,8 @@ import type {
   BattleTeamDoc,
   MatchupDoc,
   FinalDoc,
+  BracketDoc,
+  BracketMatchDoc,
 } from "./models/BattleEvent";
 import type {
   TournamentDoc,
@@ -157,16 +159,41 @@ export type FinalDTO = {
   roundWins: Record<string, number>;
 };
 
+export type BracketMatchDTO = {
+  matchId: string;
+  bracket: "WB" | "LB" | "GF";
+  label: string;
+  order: number;
+  bestOf: number;
+  aTeamId: string | null;
+  bTeamId: string | null;
+  rounds: (string | null)[];
+  winnerTeamId: string | null;
+};
+
+export type BracketDTO = {
+  matches: BracketMatchDTO[];
+};
+
 export type BattleEventDTO = {
   id: string;
   title: string;
   description: string | null;
   startAt: string;
-  status: "draft" | "open" | "teams_generated" | "group_stage" | "final_stage" | "completed";
+  format: "round_robin" | "double_elim";
+  status:
+    | "draft"
+    | "open"
+    | "teams_generated"
+    | "group_stage"
+    | "final_stage"
+    | "bracket_stage"
+    | "completed";
   participants: string[];
   teams: BattleTeamDTO[];
   groupMatchups: MatchupDTO[];
   final: FinalDTO | null;
+  bracket: BracketDTO | null;
   championTeamId: string | null;
   announceMessageId: string | null;
 };
@@ -201,17 +228,39 @@ function toFinalDTO(final: FinalDoc): FinalDTO {
   };
 }
 
+function toBracketMatchDTO(m: BracketMatchDoc): BracketMatchDTO {
+  return {
+    matchId: m.matchId,
+    bracket: m.bracket as BracketMatchDTO["bracket"],
+    label: m.label,
+    order: m.order,
+    bestOf: m.bestOf,
+    aTeamId: m.aTeamId ?? null,
+    bTeamId: m.bTeamId ?? null,
+    rounds: (m.rounds ?? []).map((r) => (r as string | null) ?? null),
+    winnerTeamId: m.winnerTeamId ?? null,
+  };
+}
+
+function toBracketDTO(bracket: BracketDoc): BracketDTO {
+  return {
+    matches: (bracket.matches ?? []).map(toBracketMatchDTO),
+  };
+}
+
 export function toBattleEventDTO(doc: HydratedDocument<BattleEventDoc>): BattleEventDTO {
   return {
     id: doc._id.toString(),
     title: doc.title,
     description: doc.description ?? null,
     startAt: doc.startAt.toISOString(),
+    format: (doc.format ?? "round_robin") as BattleEventDTO["format"],
     status: doc.status as BattleEventDTO["status"],
     participants: (doc.participants ?? []).map((id) => id.toString()),
     teams: (doc.teams ?? []).map(toBattleTeamDTO),
     groupMatchups: (doc.groupMatchups ?? []).map(toMatchupDTO),
     final: doc.final ? toFinalDTO(doc.final) : null,
+    bracket: doc.bracket ? toBracketDTO(doc.bracket) : null,
     championTeamId: doc.championTeamId ?? null,
     announceMessageId: doc.announceMessageId ?? null,
   };

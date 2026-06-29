@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Crown, Trophy, X } from "lucide-react";
 import { classIconSrc } from "@/lib/assets";
 import { isTovanIcon } from "@/lib/classes";
-import type { BattleEventDTO, BattleTeamDTO, MemberDTO } from "@/lib/dto";
+import type { BattleEventDTO, BattleTeamDTO, BracketMatchDTO, MemberDTO } from "@/lib/dto";
 import { MemberPicker } from "./MemberPicker";
 
 interface BattlePanelProps {
@@ -20,7 +20,13 @@ const STATUS_LABELS: Record<BattleEventDTO["status"], string> = {
   teams_generated: "Đã chia đội",
   group_stage: "Vòng bảng",
   final_stage: "Chung kết",
+  bracket_stage: "Nhánh đấu",
   completed: "Hoàn thành",
+};
+
+const FORMAT_LABELS: Record<BattleEventDTO["format"], string> = {
+  round_robin: "Vòng bảng + Chung kết Bo5",
+  double_elim: "Loại trực tiếp 2 nhánh (Bo3)",
 };
 
 const TEAM_SIZE = 3;
@@ -35,6 +41,7 @@ export function BattlePanel({ initialEvents, members }: BattlePanelProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startAt, setStartAt] = useState("");
+  const [format, setFormat] = useState<BattleEventDTO["format"]>("round_robin");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -69,11 +76,13 @@ export function BattlePanel({ initialEvents, members }: BattlePanelProps) {
       title,
       description: description || null,
       startAt: new Date(startAt).toISOString(),
+      format,
     });
     if (ok) {
       setTitle("");
       setDescription("");
       setStartAt("");
+      setFormat("round_robin");
     }
   }
 
@@ -104,8 +113,19 @@ export function BattlePanel({ initialEvents, members }: BattlePanelProps) {
             value={startAt}
             onChange={(e) => setStartAt(e.target.value)}
             required
-            className="mb-3 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+            className="mb-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           />
+          <select
+            value={format}
+            onChange={(e) => setFormat(e.target.value as BattleEventDTO["format"])}
+            className="mb-3 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+          >
+            {(Object.keys(FORMAT_LABELS) as BattleEventDTO["format"][]).map((f) => (
+              <option key={f} value={f}>
+                {FORMAT_LABELS[f]}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={busy}
@@ -175,6 +195,7 @@ interface DetailProps {
 
 function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
   const base = `/api/admin/battles/${event.id}`;
+  const isDoubleElim = event.format === "double_elim";
   const poolValid =
     event.participants.length >= TEAM_SIZE * 2 &&
     event.participants.length % TEAM_SIZE === 0;
@@ -187,6 +208,9 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
     0
   );
   const tovanBalanced = poolValid && tovanCount === teamCount;
+  // Double-elim needs a power-of-two team count (4 / 8 / 16).
+  const bracketSizeValid = teamCount >= 4 && (teamCount & (teamCount - 1)) === 0;
+  const canGenerate = tovanBalanced && (!isDoubleElim || bracketSizeValid);
 
   const teamById = new Map(event.teams.map((t) => [t.teamId, t]));
   const standings = [...event.teams].sort((a, b) => b.groupPoints - a.groupPoints);
@@ -204,7 +228,9 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
 
   async function generateTeams() {
     const hasResults =
-      event.groupMatchups.some((m) => m.result !== null) || event.final !== null;
+      event.groupMatchups.some((m) => m.result !== null) ||
+      event.final !== null ||
+      (event.bracket?.matches ?? []).some((m) => m.rounds.some((r) => r !== null));
     if (hasResults && !confirm("Tạo lại đội sẽ xóa toàn bộ kết quả đã ghi. Tiếp tục?")) return;
     await api(`${base}/generate-teams`, "POST", { confirmReset: hasResults });
   }
@@ -242,7 +268,8 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
         <div>
           <p className="text-lg font-semibold text-zinc-900">{event.title}</p>
           <p className="text-xs text-zinc-500">
-            {STATUS_LABELS[event.status]} · {new Date(event.startAt).toLocaleString("vi-VN")}
+            {STATUS_LABELS[event.status]} · {FORMAT_LABELS[event.format]} ·{" "}
+            {new Date(event.startAt).toLocaleString("vi-VN")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -282,17 +309,28 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
               )
             </span>
           </p>
-          {poolValid && (
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                tovanBalanced
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-amber-50 text-amber-700"
-              }`}
-            >
-              Tố Vấn: {tovanCount} / {teamCount}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {poolValid && isDoubleElim && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  bracketSizeValid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {bracketSizeValid ? `${teamCount} đội` : "Cần 4/8/16 đội"}
+              </span>
+            )}
+            {poolValid && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  tovanBalanced
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                Tố Vấn: {tovanCount} / {teamCount}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mb-3 flex flex-wrap gap-2">
@@ -337,11 +375,13 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
           <p className="text-sm font-medium text-zinc-700">Đội hình</p>
           <button
             type="button"
-            disabled={busy || !tovanBalanced}
+            disabled={busy || !canGenerate}
             title={
               poolValid && !tovanBalanced
                 ? `Cần đúng ${teamCount} Tố Vấn cho ${teamCount} đội (hiện có ${tovanCount}).`
-                : undefined
+                : poolValid && isDoubleElim && !bracketSizeValid
+                  ? `Nhánh loại trực tiếp cần 4/8/16 đội (hiện có ${teamCount}).`
+                  : undefined
             }
             onClick={generateTeams}
             className="cursor-pointer rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -366,8 +406,8 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
         )}
       </section>
 
-      {/* 3. Group stage */}
-      {event.groupMatchups.length > 0 && (
+      {/* 3. Group stage (round-robin format only) */}
+      {!isDoubleElim && event.groupMatchups.length > 0 && (
         <section className="rounded-xl border border-zinc-200 bg-white p-4">
           <p className="mb-3 text-sm font-medium text-zinc-700">
             Vòng bảng{" "}
@@ -451,9 +491,14 @@ function BattleDetail({ event, members, memberById, busy, api }: DetailProps) {
         </section>
       )}
 
-      {/* 4. Final */}
-      {event.final && (
+      {/* 4. Final (round-robin format only) */}
+      {!isDoubleElim && event.final && (
         <FinalSection event={event} teamById={teamById} busy={busy} api={api} base={base} />
+      )}
+
+      {/* 5. Double-elimination bracket */}
+      {isDoubleElim && event.bracket && event.bracket.matches.length > 0 && (
+        <BracketSection event={event} teamById={teamById} busy={busy} api={api} base={base} />
       )}
     </div>
   );
@@ -520,6 +565,136 @@ function FinalSection({
         ))}
       </div>
     </section>
+  );
+}
+
+const BRACKET_GROUPS: { side: BracketMatchDTO["bracket"]; title: string }[] = [
+  { side: "WB", title: "Nhánh thắng" },
+  { side: "LB", title: "Nhánh thua" },
+  { side: "GF", title: "Chung kết tổng" },
+];
+
+function BracketSection({
+  event,
+  teamById,
+  busy,
+  api,
+  base,
+}: {
+  event: BattleEventDTO;
+  teamById: Map<string, BattleTeamDTO>;
+  busy: boolean;
+  api: DetailProps["api"];
+  base: string;
+}) {
+  const matches = [...event.bracket!.matches].sort((a, b) => a.order - b.order);
+  const champion = event.championTeamId ? teamById.get(event.championTeamId) : null;
+  const teamName = (tid: string | null) => (tid ? (teamById.get(tid)?.name ?? "?") : "—");
+
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+      <p className="mb-3 text-sm font-medium text-zinc-700">Nhánh loại trực tiếp</p>
+
+      {champion && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          <Trophy className="h-4 w-4" aria-hidden="true" />
+          Vô địch: {champion.name}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {BRACKET_GROUPS.map(({ side, title }) => {
+          const group = matches.filter((m) => m.bracket === side);
+          if (group.length === 0) return null;
+          return (
+            <div key={side} className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</p>
+              {group.map((m) => (
+                <BracketMatchCard
+                  key={m.matchId}
+                  match={m}
+                  teamName={teamName}
+                  busy={busy}
+                  onRecord={(index, winnerTeamId) =>
+                    api(`${base}/bracket/matches/${m.matchId}/games/${index}`, "PATCH", {
+                      winnerTeamId,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function BracketMatchCard({
+  match,
+  teamName,
+  busy,
+  onRecord,
+}: {
+  match: BracketMatchDTO;
+  teamName: (tid: string | null) => string;
+  busy: boolean;
+  onRecord: (index: number, winnerTeamId: string | null) => void;
+}) {
+  const wins = (tid: string | null) =>
+    tid ? match.rounds.filter((w) => w === tid).length : 0;
+  const ready = match.aTeamId != null && match.bTeamId != null;
+
+  return (
+    <div className="rounded-md border border-zinc-200 p-3">
+      <div className="mb-2 flex items-center justify-between text-xs text-zinc-400">
+        <span>{match.label}</span>
+        <span>Bo{match.bestOf}</span>
+      </div>
+      <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+        <span className="flex items-center gap-1.5 truncate">
+          {match.winnerTeamId === match.aTeamId && match.winnerTeamId && (
+            <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
+          )}
+          <span className="truncate font-medium">{teamName(match.aTeamId)}</span>
+          <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold tabular-nums">
+            {wins(match.aTeamId)}
+          </span>
+        </span>
+        <span className="flex items-center gap-1.5 truncate">
+          <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold tabular-nums">
+            {wins(match.bTeamId)}
+          </span>
+          <span className="truncate font-medium">{teamName(match.bTeamId)}</span>
+          {match.winnerTeamId === match.bTeamId && match.winnerTeamId && (
+            <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
+          )}
+        </span>
+      </div>
+
+      {ready ? (
+        <div className="flex flex-col gap-1">
+          {match.rounds.map((winner, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <span className="w-12 shrink-0 text-zinc-500">Hiệp {i + 1}</span>
+              <div className="flex gap-1">
+                {[match.aTeamId, match.bTeamId].map((tid) => (
+                  <ResultButton
+                    key={tid}
+                    active={winner === tid}
+                    label={teamName(tid)}
+                    disabled={busy}
+                    onClick={() => onRecord(i, winner === tid ? null : tid)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-zinc-400">Chờ đội từ vòng trước.</p>
+      )}
+    </div>
   );
 }
 
