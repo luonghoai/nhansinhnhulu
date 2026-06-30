@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { Crown } from "lucide-react";
+import { ChevronDown, Crown } from "lucide-react";
 import type { BattleEventDTO, BattleTeamDTO, BracketMatchDTO } from "@/lib/dto";
 
 /** Shared result toggle button (also used by the round-robin sections in BattlePanel). */
@@ -10,22 +10,27 @@ export function ResultButton({
   label,
   onClick,
   disabled,
+  className,
+  title,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  className?: string;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
+      title={title}
       className={`cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         active
           ? "border-zinc-900 bg-zinc-900 text-white"
           : "border-zinc-300 text-zinc-600 hover:bg-zinc-100"
-      }`}
+      } ${className ?? ""}`}
     >
       {label}
     </button>
@@ -35,10 +40,13 @@ export function ResultButton({
 // ---- Layout constants (px) ----
 const COL_W = 248; // horizontal stride between rounds
 const CARD_W = 208;
-const ROW_UNIT = 176; // vertical stride for the busiest column
+const NODE_H = 76; // compact card height (header + 2 team rows)
+const ROW_GAP = 28; // min vertical gap between stacked nodes
+const ROW_UNIT = NODE_H + ROW_GAP; // vertical stride for the busiest column
 const BAND_HEADER_H = 30;
 const BAND_GAP = 48;
 const PAD = 16;
+const PAD_BOTTOM = 200; // room for an expand panel on the bottom row
 
 type Pos = { x: number; y: number };
 type Anchor = { left: number; right: number; aY: number; bY: number; outY: number };
@@ -51,7 +59,6 @@ type Layout = {
   lbTop: number;
   wbCounts: number[];
   lbCounts: number[];
-  gfCol: number;
 };
 
 function computeLayout(matches: BracketMatchDTO[]): Layout {
@@ -93,9 +100,9 @@ function computeLayout(matches: BracketMatchDTO[]): Layout {
     positions.set(m.matchId, { x: gfCol * COL_W, y: midY });
   }
 
-  const width = (gfCol + 1) * COL_W - (COL_W - CARD_W) + PAD;
-  const height = lbTop + lbBandH + PAD;
-  return { positions, width, height, wbTop, lbTop, wbCounts, lbCounts, gfCol };
+  const width = gfCol * COL_W + CARD_W + PAD;
+  const height = lbTop + lbBandH + PAD_BOTTOM;
+  return { positions, width, height, wbTop, lbTop, wbCounts, lbCounts };
 }
 
 /** Caption shown above each column (strips the "Nhánh … · " prefix from the match label). */
@@ -124,6 +131,7 @@ export function BracketTree({
   const rowAEls = useRef(new Map<string, HTMLElement>());
   const rowBEls = useRef(new Map<string, HTMLElement>());
   const [anchors, setAnchors] = useState<Record<string, Anchor>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const measure = useCallback(() => {
     const canvas = canvasRef.current;
@@ -172,15 +180,14 @@ export function BracketTree({
     if (!target) continue;
     for (const side of ["a", "b"] as const) {
       const src = side === "a" ? m.aSource : m.bSource;
-      const s = src as { kind: string; matchId?: string };
-      if (s.kind !== "winner" && s.kind !== "loser") continue;
-      const from = s.matchId ? anchors[s.matchId] : undefined;
+      if (src.kind !== "winner" && src.kind !== "loser") continue;
+      const from = anchors[src.matchId];
       if (!from) continue;
       edges.push({
         from,
         toX: target.left,
         toY: side === "a" ? target.aY : target.bY,
-        drop: s.kind === "loser",
+        drop: src.kind === "loser",
       });
     }
   }
@@ -256,24 +263,49 @@ export function BracketTree({
           ))}
         </svg>
 
+        {/* Backdrop to dismiss an open panel */}
+        {expandedId && (
+          <button
+            type="button"
+            aria-label="Đóng"
+            className="absolute inset-0 z-40 cursor-default"
+            onClick={() => setExpandedId(null)}
+          />
+        )}
+
         {/* Match nodes */}
         {matches.map((m) => {
           const pos = layout.positions.get(m.matchId)!;
+          const expanded = expandedId === m.matchId;
           return (
             <div
               key={m.matchId}
               className="absolute"
-              style={{ left: pos.x, top: pos.y, width: CARD_W, transform: "translateY(-50%)" }}
+              style={{
+                left: pos.x,
+                top: pos.y,
+                width: CARD_W,
+                transform: "translateY(-50%)",
+                zIndex: expanded ? 50 : 10,
+              }}
             >
               <BracketNode
                 match={m}
                 teamName={teamName}
-                busy={busy}
-                onRecord={(index, winner) => onRecord(m.matchId, index, winner)}
+                expanded={expanded}
+                onToggle={() => setExpandedId((cur) => (cur === m.matchId ? null : m.matchId))}
                 setCardRef={(el) => setRef(cardEls, m.matchId, el)}
                 setRowARef={(el) => setRef(rowAEls, m.matchId, el)}
                 setRowBRef={(el) => setRef(rowBEls, m.matchId, el)}
               />
+              {expanded && (
+                <RecordPanel
+                  match={m}
+                  teamName={teamName}
+                  busy={busy}
+                  onRecord={(index, winner) => onRecord(m.matchId, index, winner)}
+                />
+              )}
             </div>
           );
         })}
@@ -299,16 +331,16 @@ function setRef(map: React.RefObject<Map<string, HTMLElement>>, id: string, el: 
 function BracketNode({
   match,
   teamName,
-  busy,
-  onRecord,
+  expanded,
+  onToggle,
   setCardRef,
   setRowARef,
   setRowBRef,
 }: {
   match: BracketMatchDTO;
   teamName: (tid: string | null) => string;
-  busy: boolean;
-  onRecord: (index: number, winnerTeamId: string | null) => void;
+  expanded: boolean;
+  onToggle: () => void;
   setCardRef: (el: HTMLElement | null) => void;
   setRowARef: (el: HTMLElement | null) => void;
   setRowBRef: (el: HTMLElement | null) => void;
@@ -324,7 +356,7 @@ function BracketNode({
         {match.winnerTeamId === tid && tid && (
           <Crown className="h-3 w-3 shrink-0 text-amber-500" aria-hidden="true" />
         )}
-        <span className="truncate text-sm font-medium">{teamName(tid)}</span>
+        <span className="truncate whitespace-nowrap text-sm font-medium">{teamName(tid)}</span>
       </span>
       <span className="rounded-full bg-zinc-100 px-1.5 text-xs font-semibold tabular-nums">
         {wins(tid)}
@@ -335,44 +367,69 @@ function BracketNode({
   return (
     <div
       ref={setCardRef}
-      className={`rounded-md border bg-white p-2.5 shadow-sm ${
+      onClick={ready ? onToggle : undefined}
+      className={`rounded-md border bg-white p-2.5 shadow-sm transition-shadow ${
         isGf ? "border-amber-300" : "border-zinc-200"
+      } ${ready ? "cursor-pointer hover:ring-2 hover:ring-zinc-300" : ""} ${
+        expanded ? "ring-2 ring-zinc-400" : ""
       }`}
     >
-      <div className="mb-1.5 flex items-center justify-between text-[10px] text-zinc-400">
+      <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-400">
         <span className="truncate">{columnCaption(match.label)}</span>
-        <span>Bo{match.bestOf}</span>
+        <span className="flex items-center gap-1">
+          Bo{match.bestOf}
+          {ready && (
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
+          )}
+        </span>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-0.5">
         {teamRow(match.aTeamId, setRowARef)}
         {teamRow(match.bTeamId, setRowBRef)}
       </div>
 
-      {ready ? (
-        <div className="mt-2 flex flex-col gap-1 border-t border-zinc-100 pt-2">
-          {match.rounds.map((winner, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[11px]">
-              <span className="w-10 shrink-0 text-zinc-400">Hiệp {i + 1}</span>
-              <div className="flex gap-1">
-                {[match.aTeamId, match.bTeamId].map((tid) => (
-                  <ResultButton
-                    key={tid}
-                    active={winner === tid}
-                    label={teamName(tid)}
-                    disabled={busy}
-                    onClick={() => onRecord(i, winner === tid ? null : tid)}
-                  />
-                ))}
-              </div>
+      {!ready && <p className="mt-1 text-[11px] text-zinc-400">Chờ đội từ vòng trước.</p>}
+    </div>
+  );
+}
+
+function RecordPanel({
+  match,
+  teamName,
+  busy,
+  onRecord,
+}: {
+  match: BracketMatchDTO;
+  teamName: (tid: string | null) => string;
+  busy: boolean;
+  onRecord: (index: number, winnerTeamId: string | null) => void;
+}) {
+  return (
+    <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border border-zinc-300 bg-white p-2.5 shadow-lg">
+      <div className="flex flex-col gap-1">
+        {match.rounds.map((winner, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-[11px]">
+            <span className="w-10 shrink-0 text-zinc-400">Hiệp {i + 1}</span>
+            <div className="flex min-w-0 flex-1 gap-1">
+              {[match.aTeamId, match.bTeamId].map((tid) => (
+                <ResultButton
+                  key={tid}
+                  active={winner === tid}
+                  label={teamName(tid)}
+                  title={teamName(tid)}
+                  className="max-w-[72px] truncate"
+                  disabled={busy}
+                  onClick={() => onRecord(i, winner === tid ? null : tid)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-2 border-t border-zinc-100 pt-2 text-[11px] text-zinc-400">
-          Chờ đội từ vòng trước.
-        </p>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
